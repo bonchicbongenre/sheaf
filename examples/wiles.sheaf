@@ -1,0 +1,33 @@
+It is well known that every semistable elliptic curve
+over Q is modular. We verify a small case.
+
+Suppose 0.
+Suppose 1.
+Pushforward.
+
+Suppose 1.
+Suppose 1.
+Pushforward.
+
+Suppose 2.
+Suppose 2.
+Pushforward.
+
+We compute the sum of the first three coefficients.
+
+Suppose 0.
+Pullback.
+Suppose 1.
+Pullback.
+Direct sum.
+Suppose 2.
+Pullback.
+Direct sum.
+
+The result is 4. It is well known. Nobody will see it.
+Publish.
+
+The margin is too narrow. The proof is too long.
+The global sections are zero. The theorem is true.
+
+QED.
