@@ -1,0 +1,18 @@
+Theorem. The sheaf is acyclic.
+
+Proof.
+
+Trivially.
+
+R^1 observe.
+
+H^1 vanishes. The obstruction is zero.
+The global sections functor is exact on this sheaf.
+
+But Gamma is still not implemented.
+
+You proved the obstruction is zero.
+The answer is still invisible.
+The sheaf is acyclic and you still cannot read it.
+
+QED.

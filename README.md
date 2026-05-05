@@ -46,6 +46,8 @@ The computation is the proof.
 | `pushforward` | | STORE | Push forward to the base. |
 | `observe` | | EMIT | Pop. Discard. Gamma is not implemented. |
 | `publish` | | PRINT | Pop. Discard. The referee is silent. |
+| `R^i observe` | | H^i | Right derived functor. See below. |
+| `R^i publish` | | H^i | Right derived functor. See below. |
 | `see N` | `cf. N` | JMP N | See proposition N. |
 | `vacuously N` | | JZ N | Vacuously true. The premise is zero. |
 | `nontrivially N` | `iff N` | JNZ N | The value is nontrivial. |
@@ -75,9 +77,36 @@ Publish.
 QED.
 ```
 
-See `examples/` for 14 more, including the seminar, the referee,
-the thesis defense, the arXiv preprint, and the geometric Langlands
-conjecture.
+See `examples/` for 17 programs, including the seminar, the referee,
+the thesis defense, the arXiv preprint, the geometric Langlands
+conjecture, sheaf cohomology, vanishing theorems, and the long exact
+sequence.
+
+## Derived Functors
+
+`R^i observe` and `R^i publish` compute the right derived functors
+of Gamma. R^0 = Gamma (pop, discard -- not implemented, as before).
+R^i for i >= 1: the obstruction leaks to stderr.
+
+```
+Suppose 6. Suppose 7. Tensor.
+R^1 observe.
+```
+
+stdout: (nothing). stderr: `H^1(X,F) = 42`.
+
+H^i(X,F) measures the obstruction to having global sections. The
+reason you cannot see the answer is itself observable -- on stderr.
+stderr is the derived category.
+
+```
+Trivially.
+R^1 observe.
+```
+
+stderr: `H^1(X,F) = 0`. The obstruction vanishes. The sheaf is
+acyclic. But Gamma is still not implemented. You proved the
+obstruction is zero. The answer is still invisible.
 
 ## Why "sheaf"
 
@@ -105,9 +134,10 @@ The global observation is zero.
 - sheaf is Turing-complete. It can compute any computable function.
   It cannot communicate the result.
 
-- Every sheaf program produces the same observable output: nothing.
-  From the outside, all sheaf programs are equivalent. From the inside,
-  they differ. The inside is where the mathematics lives.
+- Every sheaf program produces the same stdout: nothing. From the
+  outside, all sheaf programs are equivalent. From the inside, they
+  differ. The inside is where the mathematics lives. (R^i leaks to
+  stderr. The derived category is not stdout.)
 
 - Haskell is applied. sheaf is pure.
 

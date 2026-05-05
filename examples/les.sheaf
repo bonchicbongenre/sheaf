@@ -1,0 +1,41 @@
+The long exact sequence in cohomology.
+
+Given 0 -> F -> G -> H -> 0, the connecting
+homomorphism delta produces:
+
+0 -> H^0(F) -> H^0(G) -> H^0(H) ->
+  H^1(F) -> H^1(G) -> H^1(H) -> ...
+
+Suppose 3.
+R^0 observe.
+
+Suppose 5.
+R^0 observe.
+
+Suppose 7.
+R^0 observe.
+
+Three global sections. All consumed. None visible.
+The H^0 terms vanish into the implementation gap.
+
+Now the connecting homomorphism.
+
+Suppose 11.
+R^1 observe.
+
+Suppose 13.
+R^1 observe.
+
+Suppose 17.
+R^1 observe.
+
+The first obstructions leak. Primes, because the stalks
+are local rings. The sequence is exact on stderr.
+
+Suppose 0.
+R^2 observe.
+
+Higher cohomology vanishes. The spectral sequence
+degenerates at E_2. As expected.
+
+QED.

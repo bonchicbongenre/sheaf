@@ -15,6 +15,12 @@
  * the program terminates. exit code 0. the computation was correct.
  * the correctness is unobservable. the sheaf has no global sections.
  *
+ * R^i observe/publish -- the right derived functors of Gamma.
+ * R^0 = Gamma (pop, discard). R^i for i >= 1: the obstruction
+ * leaks to stderr. H^i(X,F) measures why you cannot see it.
+ * the reason the answer is invisible is itself observable.
+ * stderr is the derived category.
+ *
  * cc -std=c99 -Wall -Wextra -pedantic -o sheaf sheaf.c
  *
  * usage: sheaf program.sheaf
@@ -156,6 +162,28 @@ static const Phrase *match(const char *ln, const char **where)
     return best;
 }
 
+/* ---- derived functors ---- */
+
+/*
+ * R^i Gamma. The right derived functors of the global sections functor.
+ * R^0 = Gamma = observe/publish: pop, discard. not implemented.
+ * R^i for i >= 1: the obstruction leaks to stderr.
+ * H^i(X,F) measures why you cannot see the global section.
+ * the reason the answer is invisible is itself observable.
+ * stderr is the derived category.
+ */
+static int try_derived(const char *ln)
+{
+    const char *p = strstr(ln, "R^");
+    if (!p) return -1;
+    p += 2;
+    if (!isdigit((unsigned char)*p)) return -1;
+    int degree = *p - '0';
+    if (!cistrstr(p, "observe") && !cistrstr(p, "publish"))
+        return -1;
+    return degree;
+}
+
 /* ---- main ---- */
 
 int main(int argc, char **argv)
@@ -187,6 +215,18 @@ int main(int argc, char **argv)
 
     while (pc >= 0 && pc < nlines) {
         const char *ln = lines[pc];
+
+        /* derived functors: R^i observe/publish */
+        int degree = try_derived(ln);
+        if (degree >= 0) {
+            long long v = pop();
+            if (degree >= 1)
+                fprintf(stderr, "H^%d(X,F) = %lld\n", degree, v);
+            /* R^0 = Gamma. pop. discard. not implemented. */
+            pc++;
+            continue;
+        }
+
         const char *at;
         const Phrase *p = match(ln, &at);
 
