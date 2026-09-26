@@ -1,0 +1,29 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        grothendieck.sheaf
+lines             13
+steps             4
+hypotheses open   1
+claims            1 checked, 0 false
+codes             P O
+result            on file
+recommendation    MAJOR REVISION
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "Grothendieck vanishing. On a noetherian
+space of dimension n,". It takes 4 steps and leaks one
+obstruction.
+
+I have not seen the result. The comments below are on the text
+alone.
+
+1. Line 11 is commentary, and its "supposed" makes a supposition.
+   Please move it out of the proof.
+
+2. One hypothesis is introduced and not discharged. It is still
+   open at QED.
+
+Recommendation: major revision.
+

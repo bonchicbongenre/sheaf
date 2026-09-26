@@ -1,0 +1,30 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        diffeomorphism.sheaf
+lines             10
+steps             100000 (reading stopped)
+hypotheses open   not reached
+claims            0 checked
+codes             R P U
+result            pending
+recommendation    MAJOR REVISION
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "On a certain diffeomorphism." It takes
+more than 100000 steps.
+
+The result was not available to me. I have read the proof closely.
+
+1. I read 100000 lines and did not reach the end. Please shorten
+   the manuscript.
+
+2. Line 1 is commentary, and its "diffeomorphism" sends the reader
+   to line 1. It did so 100000 times. Please move it out of the
+   proof.
+
+3. Line 1 uses a hypothesis that was never introduced.
+
+Recommendation: major revision.
+

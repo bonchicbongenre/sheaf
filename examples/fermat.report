@@ -1,0 +1,30 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        fermat.sheaf
+lines             30
+steps             20 (2 of them empty)
+hypotheses open   3
+claims            1 checked, 1 false
+codes             F O W C
+result            see attached
+recommendation    REJECT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "It is well known that for n > 2, no three
+positive integers". It takes 20 steps and publishes once.
+
+The result did not reach me. I have checked what I could.
+
+1. Line 28 says this is zero. It is not zero.
+
+2. Three hypotheses are introduced and not discharged. They are
+   still open at QED.
+
+3. Line 1 is well known. Please give a reference.
+
+4. Line 28 says "clearly". Please show the step.
+
+Recommendation: reject.
+

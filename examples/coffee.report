@@ -1,0 +1,28 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        coffee.sheaf
+lines             32
+steps             10
+hypotheses open   0
+claims            1 checked, 1 false
+codes             F P U
+result            could not tell
+recommendation    REJECT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "A mathematician is a device for turning
+coffee into theorems." It takes 10 steps and publishes twice.
+
+The result was not available to me. I have read the proof closely.
+
+1. Line 20 says the stack contains 4. It does not.
+
+2. Line 25 is commentary, and its "published" publishes. Please
+   move it out of the proof.
+
+3. Line 25 uses a hypothesis that was never introduced.
+
+Recommendation: reject.
+
