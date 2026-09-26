@@ -1,0 +1,13 @@
+Grothendieck vanishing. On a noetherian space of dimension n,
+H^i(X,F) = 0 for every i > n.
+
+We verify the case i = 10.
+
+Trivially.
+R^10 observe.
+
+The obstruction in degree 10 is zero.
+The dimension of X was never stated.
+The vanishing was supposed. It was not proved.
+
+QED.

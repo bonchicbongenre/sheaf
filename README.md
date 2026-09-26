@@ -77,10 +77,10 @@ Publish.
 QED.
 ```
 
-See `examples/` for 17 programs, including the seminar, the referee,
+See `examples/` for 18 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
-conjecture, sheaf cohomology, vanishing theorems, and the long exact
-sequence.
+conjecture, sheaf cohomology, vanishing theorems, Grothendieck
+vanishing, and the long exact sequence.
 
 ## Derived Functors
 
@@ -107,6 +107,25 @@ R^1 observe.
 stderr: `H^1(X,F) = 0`. The obstruction vanishes. The sheaf is
 acyclic. But Gamma is still not implemented. You proved the
 obstruction is zero. The answer is still invisible.
+
+The degree i is any natural number. `R^10 observe` computes H^10.
+
+## Tests
+
+```
+make test
+```
+
+There are two tests.
+
+The vacuous test checks that every program's stdout is empty. Every
+program's stdout is empty. The test has never failed. It cannot fail.
+It is kept for its honesty.
+
+The derived test checks each program's stderr against
+`examples/NAME.derived`, and checks that it is empty where there is no
+such file. stdout carries nothing, so stderr is the only witness. The
+obstruction is checked. The answer is not.
 
 ## Why "sheaf"
 

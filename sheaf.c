@@ -172,14 +172,15 @@ static const Phrase *match(const char *ln, const char **where)
  * the reason the answer is invisible is itself observable.
  * stderr is the derived category.
  */
-static int try_derived(const char *ln)
+static long try_derived(const char *ln)
 {
     const char *p = strstr(ln, "R^");
     if (!p) return -1;
     p += 2;
     if (!isdigit((unsigned char)*p)) return -1;
-    int degree = *p - '0';
-    if (!cistrstr(p, "observe") && !cistrstr(p, "publish"))
+    char *end;
+    long degree = strtol(p, &end, 10);
+    if (!cistrstr(end, "observe") && !cistrstr(end, "publish"))
         return -1;
     return degree;
 }
@@ -217,11 +218,11 @@ int main(int argc, char **argv)
         const char *ln = lines[pc];
 
         /* derived functors: R^i observe/publish */
-        int degree = try_derived(ln);
+        long degree = try_derived(ln);
         if (degree >= 0) {
             long long v = pop();
             if (degree >= 1)
-                fprintf(stderr, "H^%d(X,F) = %lld\n", degree, v);
+                fprintf(stderr, "H^%ld(X,F) = %lld\n", degree, v);
             /* R^0 = Gamma. pop. discard. not implemented. */
             pc++;
             continue;
