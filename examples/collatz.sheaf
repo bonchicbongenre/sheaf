@@ -1,0 +1,63 @@
+Collatz, 1937. Take 27.
+It is well known that this terminates.
+
+Suppose 1.
+Suppose 27.
+Pushforward.
+Suppose 1.
+Pullback.
+Suppose 1.
+Restrict.
+
+By induction.
+WLOG.
+Suppose 1.
+Pullback.
+Recall.
+Suppose 2.
+Localize.
+Suppose 2.
+Tensor.
+Restrict.
+Vacuously Case 1.
+
+Suppose 1.
+Suppose 1.
+Pullback.
+Suppose 3.
+Tensor.
+Suppose 1.
+Direct sum.
+Pushforward.
+See Case 2.
+
+Case 1.
+Suppose 1.
+Suppose 1.
+Pullback.
+Suppose 2.
+Localize.
+Pushforward.
+
+Case 2.
+Suppose 0.
+Suppose 0.
+Pullback.
+Suppose 1.
+Direct sum.
+Pushforward.
+Suppose 1.
+Pullback.
+Suppose 1.
+Restrict.
+This completes the induction.
+
+WLOG.
+Suppose 0.
+Pullback.
+
+The result is 111.
+
+Publish.
+
+QED.

@@ -79,6 +79,10 @@ typedef struct {
     char word[64];       /* the word the phrase hides in */
     char claim[160];     /* the claim, as written */
     char denial[64];     /* and its denial */
+    char cite[48];       /* the heading a citation or jump names */
+    char dangling;       /* and it is not there */
+    int  dangling_op;
+    char called;         /* a heading someone cited */
 } Mark;
 
 static Mark *mark;
@@ -286,12 +290,20 @@ static void read_line(const Event *e, void *ctx)
             m->phrase = p->text;
             hiding_place(e->text, e->at, p, m->word, sizeof m->word);
             if (p->op == JMP_ || p->op == JZ_ || p->op == JNZ_) {
-                int ok;
-                m->target = (int)scanint(e->at + strlen(p->text), &ok);
-                if (e->next == m->target)
+                m->target = e->target;
+                if (e->target != NOWHERE && e->next == e->target)
                     m->sent++;
             }
         }
+
+        if (e->cite[0])
+            snprintf(m->cite, sizeof m->cite, "%s", e->cite);
+        if (e->unresolved) {
+            m->dangling = 1;
+            m->dangling_op = p->op;
+        }
+        if (p->op == CALL_ && e->target != NOWHERE)
+            mark[e->target - 1].called = 1;
     }
 
     if (e->underflows)
@@ -419,10 +431,20 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case JMP_:
     case JZ_:
     case JNZ_:
-        snprintf(buf, cap, "%s the reader to line" NB "%d",
-                 m->sent ? "sends" : "may send", m->target + 1);
+        if (m->cite[0])
+            snprintf(buf, cap, "%s the reader to %s",
+                     m->sent ? "sends" : "may send", m->cite);
+        else
+            snprintf(buf, cap, "%s the reader to line" NB "%d",
+                     m->sent ? "sends" : "may send", m->target + 1);
         return buf;
     case HALT_:  return "ends the proof";
+    case CALL_:
+        snprintf(buf, cap, "cites %s", m->cite);
+        return buf;
+    case RET_:    return "ends a lemma";
+    case LOOP_:   return "begins an induction";
+    case REPEAT_: return "completes an induction";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;
@@ -480,9 +502,20 @@ int main(int argc, char **argv)
     int nn = line_list(nl, sizeof nl, has_n);
     int open = unfinished ? 0 : sp;
 
+    int any_dangling = 0;
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].dangling) any_dangling = 1;
+
+    /* lazy lemmas nobody cited: their proofs were never read */
+    int unread = 0;
+    for (int l = 0; l < nlabels && !unfinished; l++)
+        if (labels[l].kind < NLAZY && skip_to[labels[l].line] != NOWHERE &&
+            !mark[labels[l].line].called)
+            unread++;
+
     int decision = ACCEPT;
-    if (any_prose_minor || nn || nw || nc) decision = MINOR;
-    if (unfinished || any_prose_major || nu || open) decision = MAJOR;
+    if (any_prose_minor || nn || nw || nc || unread) decision = MINOR;
+    if (unfinished || any_prose_major || any_dangling || nu || open) decision = MAJOR;
     if (claims_false) decision = REJECT;
 
     const char *name = strrchr(argv[1], '/');
@@ -495,8 +528,10 @@ int main(int argc, char **argv)
     if (claims_false)                     strcat(codes, " F");
     if (unfinished)                       strcat(codes, " R");
     if (any_prose_major || any_prose_minor) strcat(codes, " P");
+    if (any_dangling)                     strcat(codes, " D");
     if (nu)                               strcat(codes, " U");
     if (open)                             strcat(codes, " O");
+    if (unread)                           strcat(codes, " L");
     if (nn)                               strcat(codes, " N");
     if (nw)                               strcat(codes, " W");
     if (nc)                               strcat(codes, " C");
@@ -589,6 +624,14 @@ int main(int argc, char **argv)
             comment();
         }
 
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].dangling) {
+            pf("Line" NB "%d %s %s. There is no %s.", i + 1,
+               mark[i].dangling_op == CALL_ ? "cites" : "sends the reader to",
+               mark[i].cite, mark[i].cite);
+            comment();
+        }
+
     if (nu) {
         if (nu == 1) pf("Line%s uses a hypothesis that was never introduced.", ul);
         else pf("Lines%s use hypotheses that were never introduced.", ul);
@@ -610,6 +653,14 @@ int main(int argc, char **argv)
         if (mark[i].prose && mark[i].op == NOP_) {
             pf("Line" NB "%d is commentary, and its \"%s\" %s. Nothing follows from it.",
                i + 1, mark[i].word, performs(&mark[i], buf, sizeof buf));
+            comment();
+        }
+
+    for (int l = 0; l < nlabels && unread; l++)
+        if (labels[l].kind < NLAZY && skip_to[labels[l].line] != NOWHERE &&
+            !mark[labels[l].line].called) {
+            pf("%s%s%s is never cited, so its proof was not read.",
+               KINDS[labels[l].kind], labels[l].id[0] ? NB : "", labels[l].id);
             comment();
         }
 

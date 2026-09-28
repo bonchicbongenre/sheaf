@@ -52,6 +52,10 @@ The computation is the proof.
 | `see N` | `cf. N` | JMP N | See proposition N. |
 | `vacuously N` | `iff N` | JZ N | Vacuously true. The premise is zero. |
 | `nontrivially N` | | JNZ N | The value is nontrivial. |
+| `by lemma N` | `by proposition N`, `by corollary N`, `by claim N`, `by theorem N` | CALL | Cite it. Go there, and come back. |
+| `this proves the` | | RET | Come back. |
+| `by induction` | | LOOP | Begin an induction. |
+| `this completes the induction` | | REPEAT | Begin again, while the top of the stack is nonzero. |
 | `QED` | | HALT | The proof is complete. |
 | `clearly` | | NOP | Obviously. Contributes nothing. |
 | `it is well known` | `TFAE` | NOP | Everyone knows this. Nobody cites it. |
@@ -78,11 +82,12 @@ Publish.
 QED.
 ```
 
-See `examples/` for 18 programs, including the seminar, the referee,
+See `examples/` for 22 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
-vanishing, and the long exact sequence. `submissions/` holds two
-more. They do not terminate. Only the referee reads them.
+vanishing, the long exact sequence, Gauss at seven, Euclid read as a
+descent, and Collatz from 27. `submissions/` holds two more. They do
+not terminate. Only the referee reads them.
 
 ## Derived Functors
 
@@ -111,6 +116,46 @@ acyclic. But Gamma is still not implemented. You proved the
 obstruction is zero. The answer is still invisible.
 
 The degree i is any natural number. `R^10 observe` computes H^10.
+
+## Proof Technique
+
+A heading names a line. It begins the line: `Lemma 2.3.`,
+`Proposition 4.`, `Corollary 1.`, `Claim 2.`, `Theorem 1.`, `Case 2.`
+
+`By Lemma 2.3, ...` cites it. The reader goes to Lemma 2.3, reads its
+proof, and comes back at `This proves the lemma.`
+
+Lemmas are lazy. So are propositions, corollaries and claims. A
+reader who arrives at a lemma without citing it skips to the end of
+its proof. A lemma is proved when it is cited, and not before.
+Theorems and cases are read where they stand.
+
+`By induction.` begins an induction. `This completes the induction.`
+begins it again, while the top of the stack is nonzero.
+
+```
+Suppose 100.
+By induction.
+Recall.
+Suppose 0.
+Pullback.
+Direct sum.
+Suppose 0.
+By duality.
+Pushforward.
+Suppose 1.
+Restrict.
+This completes the induction.
+```
+
+That is the induction in `examples/gauss.sheaf`. Gauss put his slate
+on the teacher's desk and said "Ligget se": there it lies.
+
+`see`, `vacuously` and `nontrivially` take a heading as well as a
+number: `Vacuously Case 1.` A number counts lines from zero. `see 5`
+sends the reader to line 6.
+
+A dilemma is not a lemma. Headings begin the line.
 
 ## The Referee
 
@@ -164,8 +209,10 @@ The codes:
 | F | A claim is false: "the sum is 12", "this is zero", "the stack contains 4". | reject |
 | R | The referee read 100000 lines and did not reach the end. | major |
 | P | A phrase performs from inside a sentence. | major; minor if it does nothing |
+| D | A citation names a heading that is not there. | major |
 | U | A hypothesis is used that was never introduced. The stack was empty. | major |
 | O | Hypotheses are still open at QED. | major |
+| L | A lemma is never cited, so its proof was not read. | minor |
 | N | `NTS`, `WTS` or `RTP`. The need is stated. | minor |
 | W | It is well known. No reference is given. | minor |
 | C | Clearly. | minor |
@@ -179,8 +226,14 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 18 examples, 7 are accepted, 4 need minor revision, 5 need
+Of the 22 examples, 9 are accepted, 6 need minor revision, 5 need
 major revision, and 2 are rejected.
+
+The referee confirms that the sum of the first hundred numbers is
+5050, that the greatest common divisor of 1071 and 462 is 21, and
+that 27 reaches 1 in 111 steps. It saw none of these numbers. Of
+`collatz.sheaf` it asks for a reference for "It is well known that
+this terminates."
 
 ## False Friends
 
@@ -203,8 +256,11 @@ are instructions.
 | stop. loop. top. develop. | `op.` | Swaps. |
 | comments, elements, points, coefficients | `NTS` | Nothing. It needs to show. |
 | smartphone | `RTP` | Nothing. |
+| the nearby lemmas | `by lemma` | Cites a lemma that is not there. |
+| and this proves the point | `this proves the` | Comes back from a lemma. |
 
-Observation is safe. Publication is safe. Supposition is safe.
+Observation is safe. Publication is safe. Supposition is safe. A
+dilemma is safe.
 
 "The proof seems correct." does not terminate. It sends the reader
 back to the beginning, and the beginning leads back to it.
@@ -224,17 +280,17 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 20 reviews, 14 reach a fixed point by the third round. The
+Of the 24 reviews, 17 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
-"I read 100000 lines and did not reach the end." There are 6 of
-them. All 14 recommend major revision.
+"I read 100000 lines and did not reach the end." There are 7 of
+them. All 17 recommend major revision.
 
-In 12 of the 14, the reader was sent back by the words the referee
+In 15 of the 17, the reader was sent back by the words the referee
 used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-The other 6 reviews do not come round in 16 rounds. Their referee
+The other 7 reviews do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report publishes. Each "publishes" publishes, and has
 to be reported. The report grows by 6 lines a round.

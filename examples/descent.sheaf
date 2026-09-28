@@ -1,0 +1,56 @@
+Lemma 1. The remainder.
+
+Suppose 1.
+Pullback.
+Suppose 1.
+Pullback.
+Suppose 2.
+Pullback.
+Localize.
+Suppose 2.
+Pullback.
+Tensor.
+Restrict.
+This proves the lemma.
+
+Lemma 2. Every descent terminates.
+
+It is well known.
+This proves the lemma.
+
+Theorem 1. The greatest common divisor of 1071 and 462 is 21.
+
+Proof. Descent is induction read backwards.
+
+Suppose 1.
+Suppose 1071.
+Pushforward.
+Suppose 2.
+Suppose 462.
+Pushforward.
+
+Suppose 2.
+Pullback.
+By induction.
+WLOG.
+By Lemma 1, the remainder.
+Suppose 1.
+Suppose 2.
+Pullback.
+Pushforward.
+Suppose 2.
+By duality.
+Pushforward.
+Suppose 2.
+Pullback.
+This completes the induction.
+
+WLOG.
+Suppose 1.
+Pullback.
+
+The result is 21.
+
+Publish.
+
+QED.
