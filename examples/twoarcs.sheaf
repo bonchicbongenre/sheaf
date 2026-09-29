@@ -1,0 +1,32 @@
+Theorem 1. With two arcs, the logarithm has a global branch on the circle.
+
+Two arcs, each a little more than half of the circle.
+They overlap in two pieces. The nerve records one.
+
+Cover the circle by U1 and U2.
+The transition on U1 and U2 is 1.
+
+By gluing.
+
+The value is 1.
+
+WLOG.
+
+The branches glue. Nothing leaks.
+With two arcs the circle has no hole.
+
+Now count both pieces of the overlap.
+
+Cover the circle by U1 and U2.
+The transition on U1 and U2 is 0.
+The transition on U1 and U2 is 1.
+
+By gluing.
+
+The value is zero.
+
+WLOG.
+
+The hole is back. It was in the overlap.
+
+QED.

@@ -306,6 +306,8 @@ static void read_line(const Event *e, void *ctx)
             mark[e->target - 1].called = 1;
     }
 
+    if (e->glue == 0)
+        leaks++;           /* a gluing that failed: its class leaks */
     if (e->underflows)
         m->underflow = 1;
     if (e->gave) {
@@ -445,6 +447,9 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case RET_:    return "ends a lemma";
     case LOOP_:   return "begins an induction";
     case REPEAT_: return "completes an induction";
+    case COVER_:  return "declares a cover";
+    case TRANS_:  return "sets a transition";
+    case GLUE_:   return "glues";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;

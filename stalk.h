@@ -117,7 +117,8 @@ enum {
     EMIT_, PRINT_,
     JMP_, JZ_, JNZ_,
     HALT_, NOP_,
-    CALL_, RET_, LOOP_, REPEAT_
+    CALL_, RET_, LOOP_, REPEAT_,
+    COVER_, TRANS_, GLUE_
 };
 
 typedef struct {
@@ -156,6 +157,10 @@ static const Phrase PH[] = {
     { "this proves the",               RET_,   0 },
     { "by induction",                  LOOP_,  0 },
     { "this completes the induction",  REPEAT_, 0 },
+    /* gluing */
+    { "cover",                         COVER_, 0 },
+    { "the transition",                TRANS_, 0 },
+    { "by gluing",                     GLUE_,  0 },
     /* abbreviations -- the working mathematician's shorthand */
     { "WLOG",                          POP_,   0 },
     { "wlog",                          POP_,   0 },
@@ -323,6 +328,115 @@ static long try_derived(const char *ln)
     return degree;
 }
 
+/* ---- covers ---- */
+
+/*
+ * A cover is a list of opens, U1, U2, ..., and a transition on each
+ * overlap: an integer 1-cochain on the nerve. "By gluing." asks
+ * whether it is a coboundary. The nerve is a graph. An overlap is an
+ * edge, one per transition stated. Triple overlaps are not seen.
+ */
+#define MAX_OPENS    64
+#define MAX_OVERLAPS 256
+
+static char opens[MAX_OPENS][16];
+static int nopens;
+static int ov_a[MAX_OVERLAPS], ov_b[MAX_OVERLAPS];
+static long long ov_c[MAX_OVERLAPS];
+static int noverlaps;
+
+/* the next open named on the line at or after s: "U2" */
+static const char *next_open(const char *ln, const char *s, char *name, size_t cap)
+{
+    for (; *s; s++) {
+        if (*s != 'U' || !isdigit((unsigned char)s[1]))
+            continue;
+        if (s > ln && isalnum((unsigned char)s[-1]))
+            continue;
+        const char *e = s + 1;
+        while (isdigit((unsigned char)*e)) e++;
+        if (isalnum((unsigned char)*e))
+            continue;
+        size_t n = (size_t)(e - s);
+        if (n >= cap) n = cap - 1;
+        memcpy(name, s, n);
+        name[n] = '\0';
+        return e;
+    }
+    return NULL;
+}
+
+static int open_named(const char *name)
+{
+    for (int i = 0; i < nopens; i++)
+        if (strcmp(opens[i], name) == 0)
+            return i;
+    if (nopens == MAX_OPENS)
+        return NOWHERE;
+    snprintf(opens[nopens], sizeof opens[0], "%s", name);
+    return nopens++;
+}
+
+/* the value of a transition: the first number that is not an open's name */
+static long long transition_value(const char *s)
+{
+    for (; *s; s++) {
+        if (*s == 'U' && isdigit((unsigned char)s[1])) {
+            s++;
+            while (isdigit((unsigned char)s[1])) s++;
+            continue;
+        }
+        if ((*s == '-' && isdigit((unsigned char)s[1])) || isdigit((unsigned char)*s))
+            return strtoll(s, NULL, 10);
+    }
+    return 0;
+}
+
+/*
+ * The class of an integer 1-cochain on a graph, in H^1(graph; Z) = Z^b1.
+ * A spanning forest fixes a potential f. Each edge outside the forest
+ * closes one cycle, and the cochain's sum around it is f(a) + c - f(b).
+ * The cochain is a coboundary iff every sum is zero. Returns b1; the
+ * sums go in cls, which has room for m.
+ */
+static int cech_h1(int n, int m, const int *a, const int *b,
+                   const long long *c, long long *cls)
+{
+    int *seen = calloc((size_t)(n ? n : 1), sizeof *seen);
+    int *queue = calloc((size_t)(n ? n : 1), sizeof *queue);
+    int *tree = calloc((size_t)(m ? m : 1), sizeof *tree);
+    long long *f = calloc((size_t)(n ? n : 1), sizeof *f);
+    int b1 = 0;
+
+    if (!seen || !queue || !tree || !f)
+        goto out;
+    for (int r = 0; r < n; r++) {
+        if (seen[r]) continue;
+        int head = 0, tail = 0;
+        seen[r] = 1;
+        queue[tail++] = r;
+        while (head < tail) {
+            int u = queue[head++];
+            for (int e = 0; e < m; e++) {
+                if (tree[e] || a[e] == b[e]) continue;
+                if (a[e] == u && !seen[b[e]]) {
+                    f[b[e]] = f[u] + c[e];
+                    seen[b[e]] = 1; tree[e] = 1; queue[tail++] = b[e];
+                } else if (b[e] == u && !seen[a[e]]) {
+                    f[a[e]] = f[u] - c[e];
+                    seen[a[e]] = 1; tree[e] = 1; queue[tail++] = a[e];
+                }
+            }
+        }
+    }
+    for (int e = 0; e < m; e++)
+        if (!tree[e])
+            cls[b1++] = f[a[e]] + c[e] - f[b[e]];
+out:
+    free(seen); free(queue); free(tree); free(f);
+    return b1;
+}
+
 /* ---- one step ---- */
 
 /*
@@ -345,6 +459,8 @@ typedef struct {
     int           target;      /* where a jump or citation sends the reader */
     int           unresolved;  /* it names a heading that is not there */
     char          cite[48];    /* the heading it names, as named */
+    int           glue;        /* by gluing: 1 glued, 0 not, -1 no gluing */
+    int           b1;          /* the rank of H^1 of the nerve */
 } Event;
 
 /*
@@ -391,6 +507,7 @@ static int step(FILE *derived, Observer obs, void *ctx)
     e.sp_before = sp;
     e.top_before = sp > 0 ? stk[sp - 1] : 0;
     e.target = NOWHERE;
+    e.glue = NOWHERE;
     long u0 = underflow;
     int running = 1;
     long degree;
@@ -481,6 +598,48 @@ static int step(FILE *derived, Observer obs, void *ctx)
                 if (loop_head[e.line] != NOWHERE && peek())
                     pc = loop_head[e.line] + 1;
                 break;
+            case COVER_: {
+                /* a new cover: the opens named on the line */
+                char name[16];
+                const char *s = ln;
+                nopens = noverlaps = 0;
+                while ((s = next_open(ln, s, name, sizeof name)))
+                    open_named(name);
+                break;
+            }
+            case TRANS_: {
+                /* the transition on two opens */
+                char n1[16], n2[16];
+                const char *s = next_open(ln, ln, n1, sizeof n1);
+                if (s && next_open(ln, s, n2, sizeof n2) && noverlaps < MAX_OVERLAPS) {
+                    int i = open_named(n1), j = open_named(n2);
+                    if (i != NOWHERE && j != NOWHERE) {
+                        ov_a[noverlaps] = i;
+                        ov_b[noverlaps] = j;
+                        ov_c[noverlaps] = transition_value(at + strlen(p->text));
+                        noverlaps++;
+                    }
+                }
+                break;
+            }
+            case GLUE_: {
+                /* is the cochain a coboundary? 1 if it glues */
+                long long cls[MAX_OVERLAPS];
+                int b1 = cech_h1(nopens, noverlaps, ov_a, ov_b, ov_c, cls);
+                int glued = 1;
+                for (int i = 0; i < b1; i++)
+                    if (cls[i]) glued = 0;
+                push(glued);
+                e.glue = glued;
+                e.b1 = b1;
+                if (!glued && derived) {
+                    fprintf(derived, "H^1(U,Z) = Z^%d; the class is (", b1);
+                    for (int i = 0; i < b1; i++)
+                        fprintf(derived, "%s%lld", i ? ", " : "", cls[i]);
+                    fprintf(derived, ")\n");
+                }
+                break;
+            }
             }
         }
         /* unrecognized lines: silence. */

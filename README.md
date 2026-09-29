@@ -56,6 +56,9 @@ The computation is the proof.
 | `this proves the` | | RET | Come back. |
 | `by induction` | | LOOP | Begin an induction. |
 | `this completes the induction` | | REPEAT | Begin again, while the top of the stack is nonzero. |
+| `cover` | | COVER | A new cover, by the opens named on the line: U1, U2, ... |
+| `the transition` | | TRANS | The transition on two opens: an integer. |
+| `by gluing` | | GLUE | 1 if the transitions are a coboundary. Otherwise 0, and the class leaks. |
 | `QED` | | HALT | The proof is complete. |
 | `clearly` | | NOP | Obviously. Contributes nothing. |
 | `it is well known` | `TFAE` | NOP | Everyone knows this. Nobody cites it. |
@@ -86,8 +89,9 @@ See `examples/` for 22 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
-descent, and Collatz from 27. `submissions/` holds two more. They do
-not terminate. Only the referee reads them.
+descent, Collatz from 27, and the circle, by three arcs and by two.
+`submissions/` holds two more. They do not terminate. Only the
+referee reads them.
 
 ## Derived Functors
 
@@ -156,6 +160,46 @@ number: `Vacuously Case 1.` A number counts lines from zero. `see 5`
 sends the reader to line 6.
 
 A dilemma is not a lemma. Headings begin the line.
+
+## Gluing
+
+```
+Cover the circle by U1, U2 and U3.
+The transition on U1 and U2 is 0.
+The transition on U2 and U3 is 0.
+The transition on U3 and U1 is 1.
+By gluing.
+```
+
+The opens are U1, U2, U3. Each transition is an integer on an
+overlap: a Cech 1-cochain on the nerve. On each arc of the circle the
+logarithm has a branch, and going round, the branches disagree by one
+turn.
+
+`By gluing.` asks whether the cochain is a coboundary. A spanning tree
+of the nerve fixes the local sections; each overlap outside the tree
+closes a cycle, and the cochain is summed around it. The sums are the
+class in H^1(U, Z) = Z^b1.
+
+If every sum is zero, the sections glue. There is a global section.
+Gamma is not implemented. 1 is pushed.
+
+If not, 0 is pushed and the class leaks:
+
+```
+H^1(U,Z) = Z^1; the class is (1)
+```
+
+That is the winding number. `examples/circle.sheaf`.
+
+Two arcs also cover the circle, and their overlap is two pieces. State
+one transition for it and the nerve is a single edge. Every cochain on
+an edge is a coboundary. The sections glue, and with two arcs the
+circle has no hole. State a transition on each piece and the hole is
+back. `examples/twoarcs.sheaf` does both. Three arcs are the fewest
+that see the hole without being told.
+
+The nerve is a graph. Triple overlaps are not seen.
 
 ## The Referee
 
@@ -226,8 +270,10 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 22 examples, 9 are accepted, 6 need minor revision, 5 need
-major revision, and 2 are rejected.
+Of the 24 examples, 11 are accepted, 6 need minor revision, 5 need
+major revision, and 2 are rejected. Among the accepted: "With two
+arcs, the logarithm has a global branch on the circle." The referee
+sees the nerve, as the interpreter does.
 
 The referee confirms that the sum of the first hundred numbers is
 5050, that the greatest common divisor of 1071 and 462 is 21, and
@@ -244,7 +290,7 @@ are instructions.
 | Word | Contains | Does |
 |------|----------|------|
 | seems, seen, seed, seek, foresee | `see` | Sends the reader to line 1, unless a number follows on the line. |
-| different, difficult, differential, diffeomorphism | `iff` | If the stack is empty or zero, the same. |
+| differ, different, difficult, differential, diffeomorphism | `iff` | If the stack is empty or zero, the same. |
 | observed, observer, observes | `observe` | Pops. |
 | published, publishes, publisher | `publish` | Pops. |
 | supposed, supposedly, presuppose | `suppose` | Pushes the next number on the line, or 0. |
@@ -258,9 +304,11 @@ are instructions.
 | smartphone | `RTP` | Nothing. |
 | the nearby lemmas | `by lemma` | Cites a lemma that is not there. |
 | and this proves the point | `this proves the` | Comes back from a lemma. |
+| discover, recovered, covered | `cover` | Declares a cover, by whatever opens the line names. |
+| the transitions | `the transition` | Sets a transition. |
 
 Observation is safe. Publication is safe. Supposition is safe. A
-dilemma is safe.
+dilemma is safe. A phase transition is safe.
 
 "The proof seems correct." does not terminate. It sends the reader
 back to the beginning, and the beginning leads back to it.
@@ -280,7 +328,7 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 24 reviews, 17 reach a fixed point by the third round. The
+Of the 26 reviews, 17 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 7 of
 them. All 17 recommend major revision.
@@ -290,7 +338,7 @@ used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-The other 7 reviews do not come round in 16 rounds. Their referee
+The other 9 reviews do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report publishes. Each "publishes" publishes, and has
 to be reported. The report grows by 6 lines a round.

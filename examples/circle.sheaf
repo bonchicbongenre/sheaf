@@ -1,0 +1,21 @@
+Theorem 1. The logarithm has no global branch on the circle.
+
+Three arcs, each a little more than a third of the circle.
+On each arc the logarithm has a branch.
+Going round, the branches disagree by one turn.
+
+Cover the circle by U1, U2 and U3.
+The transition on U1 and U2 is 0.
+The transition on U2 and U3 is 0.
+The transition on U3 and U1 is 1.
+
+By gluing.
+
+The value is zero.
+
+WLOG.
+
+The branches do not glue. The obstruction is on stderr.
+It is the winding number.
+
+QED.
