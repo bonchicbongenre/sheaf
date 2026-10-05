@@ -39,6 +39,10 @@ static long long peek(void)   { if (sp > 0) return stk[sp - 1]; underflow++; ret
 static int rstk[STACK_CAP];
 static int rsp;
 
+/* each assumption made for contradiction, and how deep the stack was */
+static int frames[STACK_CAP];
+static int nframes;
+
 /* ---- memory ---- */
 
 static long long mem[MEM_SIZE];
@@ -127,7 +131,8 @@ enum {
     CALL_, RET_, LOOP_, REPEAT_,
     COVER_, TRANS_, GLUE_,
     READ_,
-    YONEDA_, NONSENSE_, SIMILAR_
+    YONEDA_, NONSENSE_, SIMILAR_,
+    ASSUME_, CONTRA_
 };
 
 typedef struct {
@@ -176,6 +181,9 @@ static const Phrase PH[] = {
     { "by yoneda",                     YONEDA_,   0 },
     { "by abstract nonsense",          NONSENSE_, 0 },
     { "similarly",                     SIMILAR_,  0 },
+    /* proof by contradiction */
+    { "assume for contradiction",      ASSUME_,   0 },
+    { "contradiction",                 CONTRA_,   0 },
     /* abbreviations -- the working mathematician's shorthand */
     { "WLOG",                          POP_,   0 },
     { "wlog",                          POP_,   0 },
@@ -481,6 +489,7 @@ typedef struct {
     const Phrase *repeat;      /* similarly: the phrase performed again */
     int           repeat_line; /* and the line it came from */
     long          repeat_degree;
+    int           contra;      /* 1 reached, 2 from nothing assumed, 3 nothing contradicts */
 } Event;
 
 /*
@@ -685,6 +694,33 @@ static void perform(int line, Event *e, FILE *derived, int *running)
                     e->glue = again.glue;
                     e->b1 = again.b1;
                     e->discharged = again.discharged;
+                    e->contra = again.contra;
+                }
+                break;
+            case ASSUME_:
+                /* everything from here is derived from what is assumed */
+                if (nframes < STACK_CAP) frames[nframes++] = sp;
+                break;
+            case CONTRA_:
+                /*
+                 * The top of the stack is the disagreement between what
+                 * was assumed and what was derived. Nonzero: the
+                 * contradiction is reached, what was derived is
+                 * discarded, and the negation, 1, is proved. With
+                 * nothing assumed, everything follows.
+                 */
+                a = pop();
+                if (a == 0) {
+                    e->contra = 3;
+                    if (nframes > 0) nframes--;
+                } else if (nframes > 0) {
+                    sp = frames[--nframes];
+                    push(1);
+                    e->contra = 1;
+                } else {
+                    sp = 0;
+                    push(1);
+                    e->contra = 2;
                 }
                 break;
             }

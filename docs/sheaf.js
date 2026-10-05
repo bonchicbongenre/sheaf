@@ -20,7 +20,7 @@ var OP = {
   LOAD: 9, STORE: 10, EMIT: 11, PRINT: 12, JMP: 13, JZ: 14, JNZ: 15,
   HALT: 16, NOP: 17, CALL: 18, RET: 19, LOOP: 20, REPEAT: 21,
   COVER: 22, TRANS: 23, GLUE: 24, READ: 25,
-  YONEDA: 26, NONSENSE: 27, SIMILAR: 28
+  YONEDA: 26, NONSENSE: 27, SIMILAR: 28, ASSUME: 29, CONTRA: 30
 };
 
 /* the phrase table, in the C order: the order breaks ties */
@@ -38,6 +38,7 @@ var PH = [
   ['cover', OP.COVER, 0], ['the transition', OP.TRANS, 0], ['by gluing', OP.GLUE, 0],
   ['left to the reader', OP.READ, 0],
   ['by yoneda', OP.YONEDA, 0], ['by abstract nonsense', OP.NONSENSE, 0], ['similarly', OP.SIMILAR, 0],
+  ['assume for contradiction', OP.ASSUME, 0], ['contradiction', OP.CONTRA, 0],
   ['WLOG', OP.POP, 0], ['wlog', OP.POP, 0], ['iff', OP.JZ, 1], ['cf.', OP.JMP, 1],
   ['cf ', OP.JMP, 1], ['op.', OP.SWAP, 0], ['resp.', OP.DUP, 0], ['TFAE', OP.NOP, 0],
   ['NTS', OP.NOP, 0], ['WTS', OP.NOP, 0], ['RTP', OP.NOP, 0], ['s.t.', OP.NOP, 0]
@@ -110,6 +111,7 @@ function Machine(source, reader) {
   m.reader = reader;     /* a string the reader gives, or null */
   m.readAt = 0;
   m.lastLine = NOWHERE;  /* what "Similarly." performs again */
+  m.frames = [];         /* each assumption made for contradiction */
   m.index();
 }
 
@@ -280,7 +282,7 @@ Machine.prototype.fresh = function (line) {
     topBefore: m.stk.length > 0 ? m.stk[m.stk.length - 1] : 0n,
     underflows: 0, gave: 0, given: 0n, next: 0, deferred: 0,
     target: NOWHERE, unresolved: 0, cite: '', glue: NOWHERE, b1: 0,
-    discharged: 0, repeat: null, repeatLine: NOWHERE, repeatDegree: -1
+    discharged: 0, repeat: null, repeatLine: NOWHERE, repeatDegree: -1, contra: 0
   };
 };
 
@@ -403,6 +405,25 @@ Machine.prototype.perform = function (line, e, derived, run) {
           e.repeat = again.p; e.repeatLine = m.lastLine; e.repeatDegree = again.degree;
           e.gave = again.gave; e.given = again.given;
           e.glue = again.glue; e.b1 = again.b1; e.discharged = again.discharged;
+          e.contra = again.contra;
+        }
+        break;
+      case OP.ASSUME:
+        if (m.frames.length < STACK_CAP) m.frames.push(m.stk.length);
+        break;
+      case OP.CONTRA:
+        a = m.pop();
+        if (!a) {
+          e.contra = 3;
+          if (m.frames.length > 0) m.frames.pop();
+        } else if (m.frames.length > 0) {
+          m.stk.length = m.frames.pop();
+          m.push(1n);
+          e.contra = 1;
+        } else {
+          m.stk = [];
+          m.push(1n);
+          e.contra = 2;
         }
         break;
       }
@@ -521,7 +542,8 @@ function review(source, name) {
   for (i = 0; i < (nl || 1); i++)
     mark.push({ seen: 0, prose: 0, underflow: 0, code: '', falseClaim: 0, op: 0, phrase: '',
                 target: 0, sent: 0, word: '', claim: '', denial: '', cite: '',
-                dangling: 0, danglingOp: 0, called: 0, yoneda: 0, discharged: 0, similarOf: 0 });
+                dangling: 0, danglingOp: 0, called: 0, yoneda: 0, discharged: 0, similarOf: 0,
+                noContra: 0, explosion: 0 });
 
   var linesRead = 0, steps = 0, emptySteps = 0, observes = 0, publishes = 0, leaks = 0;
   var claimsChecked = 0, claimsFalse = 0, haveSection = 0, haveObstruction = 0;
@@ -604,6 +626,8 @@ function review(source, name) {
       if (p.op === OP.YONEDA) mk.yoneda = 1;
       if (e.discharged > mk.discharged) mk.discharged = e.discharged;
       if (p.op === OP.SIMILAR && e.repeatLine !== NOWHERE && !mk.similarOf) mk.similarOf = e.repeatLine + 1;
+      if (e.contra === 3) mk.noContra = 1;
+      if (e.contra === 2) mk.explosion = 1;
 
       if (isInstruction(e.text, e.at, p)) {
         if (first) {
@@ -728,13 +752,17 @@ function review(source, name) {
   }
   for (i = 0; i < nv; i++) if (!color[i]) search(i);
 
-  var anyNonsense = 0;
-  for (i = 0; i < nl; i++) if (mark[i].discharged) anyNonsense = 1;
+  var anyNonsense = 0, anyNoContra = 0, anyExplosion = 0;
+  for (i = 0; i < nl; i++) {
+    if (mark[i].discharged) anyNonsense = 1;
+    if (mark[i].noContra) anyNoContra = 1;
+    if (mark[i].explosion) anyExplosion = 1;
+  }
 
   var decision1 = ACCEPT;
   if (anyProseMinor || N.n || W.n || C.n || E.n || unread || pieces > 1 || anyNonsense) decision1 = MINOR;
-  if (unfinished || anyProseMajor || anyDangling || cycles.length || U.n || open) decision1 = MAJOR;
-  if (claimsFalse) decision1 = REJECT;
+  if (unfinished || anyProseMajor || anyDangling || cycles.length || U.n || open || anyNoContra) decision1 = MAJOR;
+  if (claimsFalse || anyExplosion) decision1 = REJECT;
 
   var base = name.slice(name.lastIndexOf('/') + 1);
   var h = fnv(base);
@@ -747,10 +775,12 @@ function review(source, name) {
 
   var codes = '';
   if (claimsFalse) codes += ' F';
+  if (anyExplosion) codes += ' I';
   if (unfinished) codes += ' R';
   if (anyProseMajor || anyProseMinor) codes += ' P';
   if (anyDangling) codes += ' D';
   if (cycles.length) codes += ' X';
+  if (anyNoContra) codes += ' K';
   if (U.n) codes += ' U';
   if (open) codes += ' O';
   if (unread) codes += ' L';
@@ -865,12 +895,20 @@ function review(source, name) {
     case OP.YONEDA: return 'invokes Yoneda';
     case OP.NONSENSE: return 'discharges every hypothesis';
     case OP.SIMILAR: return 'does the last thing again';
+    case OP.ASSUME: return 'assumes for contradiction';
+    case OP.CONTRA: return 'declares a contradiction';
     default: return 'says ' + mk.phrase;
     }
   }
 
   for (i = 0; i < nl; i++)
     if (mark[i].falseClaim) { pf('Line' + NB + (i + 1) + ' says ' + mark[i].claim + '. ' + mark[i].denial); comment(); }
+
+  for (i = 0; i < nl; i++)
+    if (mark[i].explosion) {
+      pf('Line' + NB + (i + 1) + ' derives a contradiction from no assumption. The paper proves everything.');
+      comment();
+    }
 
   if (unfinished) {
     pf('I read ' + linesRead + ' lines and did not reach the end. Please shorten the manuscript.');
@@ -893,6 +931,9 @@ function review(source, name) {
     }
 
   for (i = 0; i < cycles.length; i++) { pf(cycles[i] + ' The argument is circular.'); comment(); }
+
+  for (i = 0; i < nl; i++)
+    if (mark[i].noContra) { pf('Line' + NB + (i + 1) + ' says contradiction. Nothing contradicts.'); comment(); }
 
   if (U.n) {
     pf(U.n === 1 ? 'Line' + U.text + ' uses a hypothesis that was never introduced.'

@@ -123,6 +123,8 @@ typedef struct {
     char yoneda;         /* by Yoneda */
     long discharged;     /* by abstract nonsense: how many */
     int  similar_of;     /* similarly: the line it repeats, from 1 */
+    char no_contra;      /* "contradiction", and nothing contradicts */
+    char explosion;      /* a contradiction from nothing assumed */
 } Mark;
 
 static Mark *mark;
@@ -323,6 +325,8 @@ static void read_line(const Event *e, void *ctx)
         if (e->discharged > m->discharged) m->discharged = e->discharged;
         if (p->op == SIMILAR_ && e->repeat_line != NOWHERE && !m->similar_of)
             m->similar_of = e->repeat_line + 1;
+        if (e->contra == 3) m->no_contra = 1;
+        if (e->contra == 2) m->explosion = 1;
 
         if (is_instruction(e->text, e->at, p)) {
             if (first) {
@@ -510,6 +514,8 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case YONEDA_: return "invokes Yoneda";
     case NONSENSE_: return "discharges every hypothesis";
     case SIMILAR_: return "does the last thing again";
+    case ASSUME_: return "assumes for contradiction";
+    case CONTRA_: return "declares a contradiction";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;
@@ -666,6 +672,7 @@ static void find_circles(void)
 /* ---- what was found: one reading, for every report ---- */
 
 static int any_prose_major, any_prose_minor, any_dangling, unread, open_end, any_nonsense;
+static int any_no_contra, any_explosion;
 static int nu, nw, nc, nn, nx;
 static char ul[1024], wl[1024], cl[1024], nl[1024], el[1024];
 static int decision1;
@@ -695,8 +702,11 @@ static void find(const char *file)
             !mark[labels[l].line].called)
             unread++;
 
-    for (int i = 0; i < nlines; i++)
+    for (int i = 0; i < nlines; i++) {
         if (mark[i].discharged) any_nonsense = 1;
+        if (mark[i].no_contra) any_no_contra = 1;
+        if (mark[i].explosion) any_explosion = 1;
+    }
 
     read_citations();
     find_circles();
@@ -704,9 +714,10 @@ static void find(const char *file)
     decision1 = ACCEPT;
     if (any_prose_minor || nn || nw || nc || nx || unread || pieces > 1 || any_nonsense)
         decision1 = MINOR;
-    if (unfinished || any_prose_major || any_dangling || ncycles || nu || open_end)
+    if (unfinished || any_prose_major || any_dangling || ncycles || nu || open_end ||
+        any_no_contra)
         decision1 = MAJOR;
-    if (claims_false) decision1 = REJECT;
+    if (claims_false || any_explosion) decision1 = REJECT;
 
     name = strrchr(file, '/');
     name = name ? name + 1 : file;
@@ -729,12 +740,14 @@ static int write_report(int who)
 
     /* ---- the form ---- */
 
-    char codes[32] = "";
+    char codes[64] = "";
     if (claims_false)                     strcat(codes, " F");
+    if (any_explosion)                    strcat(codes, " I");
     if (unfinished)                       strcat(codes, " R");
     if (any_prose_major || any_prose_minor) strcat(codes, " P");
     if (any_dangling)                     strcat(codes, " D");
     if (ncycles)                          strcat(codes, " X");
+    if (any_no_contra)                    strcat(codes, " K");
     if (nu)                               strcat(codes, " U");
     if (open_end)                         strcat(codes, " O");
     if (unread)                           strcat(codes, " L");
@@ -823,6 +836,13 @@ static int write_report(int who)
             comment();
         }
 
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].explosion) {
+            pf("Line" NB "%d derives a contradiction from no assumption. "
+               "The paper proves everything.", i + 1);
+            comment();
+        }
+
     if (unfinished) {
         pf("I read %ld lines and did not reach the end. "
            "Please shorten the manuscript.", lines_read);
@@ -853,6 +873,12 @@ static int write_report(int who)
         pf("%s The argument is circular.", cycles[c]);
         comment();
     }
+
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].no_contra) {
+            pf("Line" NB "%d says contradiction. Nothing contradicts.", i + 1);
+            comment();
+        }
 
     if (nu) {
         if (nu == 1) pf("Line%s uses a hypothesis that was never introduced.", ul);

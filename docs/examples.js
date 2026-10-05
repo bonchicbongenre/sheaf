@@ -26,6 +26,11 @@ var SHEAF_EXAMPLES = [
   "text": "Collatz, 1937. Take 27.\nIt is well known that this terminates.\n\nSuppose 1.\nSuppose 27.\nPushforward.\nSuppose 1.\nPullback.\nSuppose 1.\nRestrict.\n\nBy induction.\nWLOG.\nSuppose 1.\nPullback.\nRecall.\nSuppose 2.\nLocalize.\nSuppose 2.\nTensor.\nRestrict.\nVacuously Case 1.\n\nSuppose 1.\nSuppose 1.\nPullback.\nSuppose 3.\nTensor.\nSuppose 1.\nDirect sum.\nPushforward.\nSee Case 2.\n\nCase 1.\nSuppose 1.\nSuppose 1.\nPullback.\nSuppose 2.\nLocalize.\nPushforward.\n\nCase 2.\nSuppose 0.\nSuppose 0.\nPullback.\nSuppose 1.\nDirect sum.\nPushforward.\nSuppose 1.\nPullback.\nSuppose 1.\nRestrict.\nThis completes the induction.\n\nWLOG.\nSuppose 0.\nPullback.\n\nThe result is 111.\n\nPublish.\n\nQED.\n"
  },
  {
+  "name": "contradiction.sheaf",
+  "dir": "examples",
+  "text": "Theorem 1. Seven is odd.\n\nProof.\n\nAssume for contradiction.\nSuppose 0.\n\nThe remainder of seven by two is zero, by assumption.\nWe compute it.\n\nSuppose 7.\nSuppose 7.\nSuppose 2.\nLocalize.\nSuppose 2.\nTensor.\nRestrict.\n\nRestrict.\n\nContradiction.\n\nPublish.\n\nQED.\n"
+ },
+ {
   "name": "countdown.sheaf",
   "dir": "examples",
   "text": "We count down from ten.\n\nSuppose 10.\nBy induction.\nSuppose 1.\nRestrict.\nThis completes the induction.\n\nThe value is zero.\n\nObserve.\n\nNobody saw the liftoff.\n\nQED.\n"
@@ -34,6 +39,11 @@ var SHEAF_EXAMPLES = [
   "name": "descent.sheaf",
   "dir": "examples",
   "text": "Lemma 1. The remainder.\n\nSuppose 1.\nPullback.\nSuppose 1.\nPullback.\nSuppose 2.\nPullback.\nLocalize.\nSuppose 2.\nPullback.\nTensor.\nRestrict.\nThis proves the lemma.\n\nLemma 2. Every descent terminates.\n\nIt is well known.\nThis proves the lemma.\n\nTheorem 1. The greatest common divisor of 1071 and 462 is 21.\n\nProof. Descent is induction read backwards.\n\nSuppose 1.\nSuppose 1071.\nPushforward.\nSuppose 2.\nSuppose 462.\nPushforward.\n\nSuppose 2.\nPullback.\nBy induction.\nWLOG.\nBy Lemma 1, the remainder.\nSuppose 1.\nSuppose 2.\nPullback.\nPushforward.\nSuppose 2.\nBy duality.\nPushforward.\nSuppose 2.\nPullback.\nThis completes the induction.\n\nWLOG.\nSuppose 1.\nPullback.\n\nThe result is 21.\n\nPublish.\n\nQED.\n"
+ },
+ {
+  "name": "everything.sheaf",
+  "dir": "examples",
+  "text": "Theorem 1. Everything.\n\nProof.\n\nSuppose 1.\nContradiction.\n\nPublish.\n\nQED.\n"
  },
  {
   "name": "exercise.sheaf",
