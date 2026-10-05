@@ -91,7 +91,7 @@ the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
 descent, Collatz from 27, the circle by three arcs and by two, a
-lemma used twice, and the reader's square. `submissions/` holds three more. They do not
+lemma used twice, the reader's square, and a stopwatch. `submissions/` holds three more. They do not
 terminate. Only the referee reads them.
 
 ## Derived Functors
@@ -299,7 +299,7 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 26 examples, 11 are accepted, 7 need minor revision, 6 need
+Of the 27 examples, 12 are accepted, 7 need minor revision, 6 need
 major revision, and 2 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -375,6 +375,35 @@ unless it seems to.
 
 `submissions/diffeomorphism.sheaf` does not get past its title.
 
+## Side Channels
+
+sheaf satisfies noninterference. Nothing a program knows reaches
+stdout, because nothing reaches stdout. The guarantee is trivial, and
+it is complete.
+
+Channels remain. stderr was opened on purpose: the obstruction leaks
+there. Another is time.
+
+The referee never says what the result is. Its form says how many
+steps the result took.
+
+```
+steps             134
+```
+
+That is `examples/stopwatch.sheaf`. It hides 42 on the stack and
+counts down from it. Eight steps are fixed, and each time round the
+induction takes three: 134 = 8 + 3 x 42. Anyone with the source and
+the form has the answer. `examples/gauss.sheaf` takes 7 + 10n steps.
+Its form says 1007, so n is 100, and the sum was 5050.
+
+The referee also says whether a claim holds. That is one bit. Add
+"The result is 41." before the `Publish.` of a proof of 42 and the
+referee rejects it; "The result is 42." and it accepts. It will not
+tell you the answer. It will tell you whether you have guessed it.
+
+The referee keeps counting. It is a clerk.
+
 ## The Fixed Point
 
 ```
@@ -386,7 +415,7 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 29 reviews, 19 reach a fixed point by the third round. The
+Of the 30 reviews, 19 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 7 of
 them. All 19 recommend major revision.
@@ -396,7 +425,7 @@ used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-The other 10 reviews do not come round in 16 rounds. Their referee
+The other 11 reviews do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report publishes. Each "publishes" publishes, and has
 to be reported. The report grows by 6 lines a round.
