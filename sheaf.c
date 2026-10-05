@@ -46,6 +46,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    /* the reader may give. the reader is never given. */
+    the_reader = stdin;
+
     /* execute -- purely. */
     while (step(stderr, NULL, NULL))
         ;

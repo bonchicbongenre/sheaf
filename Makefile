@@ -19,13 +19,14 @@ test: vacuous derived reports
 
 # The vacuous test. Every program's stdout must be empty. Every
 # program's stdout is empty. This test has never failed and cannot
-# fail. It is kept for its honesty.
+# fail. It is kept for its honesty. In every test the reader gives
+# nothing: stdin is /dev/null.
 vacuous: $(PROG)
 	@printf 'Gamma (vacuous):\n'
 	@pass=0; fail=0; \
 	for f in $(EXAMPLES); do \
 		name=$$(basename $$f .sheaf); \
-		out=$$(./$(PROG) $$f 2>/dev/null); \
+		out=$$(./$(PROG) $$f < /dev/null 2>/dev/null); \
 		if [ -z "$$out" ]; then \
 			printf '  %-16s PASS\n' "$$name:"; \
 			pass=$$((pass + 1)); \
@@ -46,7 +47,7 @@ derived: $(PROG)
 	@pass=0; fail=0; \
 	for f in $(EXAMPLES); do \
 		name=$$(basename $$f .sheaf); \
-		got=$$(./$(PROG) $$f 2>&1 >/dev/null); \
+		got=$$(./$(PROG) $$f < /dev/null 2>&1 >/dev/null); \
 		want=$$(cat examples/$$name.derived 2>/dev/null); \
 		if [ "$$got" = "$$want" ]; then \
 			printf '  %-16s PASS\n' "$$name:"; \

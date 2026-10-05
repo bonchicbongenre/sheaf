@@ -283,6 +283,8 @@ static void read_line(const Event *e, void *ctx)
                 else if (!strcmp(p->text, "NTS") || !strcmp(p->text, "WTS") ||
                          !strcmp(p->text, "RTP"))
                     m->code = 'N';
+                else if (p->op == READ_)
+                    m->code = 'E';
             }
         } else {
             m->prose = 1;
@@ -413,6 +415,7 @@ static int has_underflow(const Mark *m) { return m->underflow; }
 static int has_w(const Mark *m) { return m->code == 'W'; }
 static int has_c(const Mark *m) { return m->code == 'C'; }
 static int has_n(const Mark *m) { return m->code == 'N'; }
+static int has_e(const Mark *m) { return m->code == 'E'; }
 
 static const char *performs(const Mark *m, char *buf, size_t cap)
 {
@@ -450,6 +453,7 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case COVER_:  return "declares a cover";
     case TRANS_:  return "sets a transition";
     case GLUE_:   return "glues";
+    case READ_:   return "asks the reader";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;
@@ -628,11 +632,12 @@ int main(int argc, char **argv)
         if (mark[i].op == NOP_) any_prose_minor = 1;
         else any_prose_major = 1;
     }
-    char ul[1024], wl[1024], cl[1024], nl[1024];
+    char ul[1024], wl[1024], cl[1024], nl[1024], el[1024];
     int nu = line_list(ul, sizeof ul, has_underflow);
     int nw = line_list(wl, sizeof wl, has_w);
     int nc = line_list(cl, sizeof cl, has_c);
     int nn = line_list(nl, sizeof nl, has_n);
+    int nx = line_list(el, sizeof el, has_e);
     int open = unfinished ? 0 : sp;
 
     int any_dangling = 0;
@@ -650,7 +655,8 @@ int main(int argc, char **argv)
     find_circles();
 
     int decision = ACCEPT;
-    if (any_prose_minor || nn || nw || nc || unread || pieces > 1) decision = MINOR;
+    if (any_prose_minor || nn || nw || nc || nx || unread || pieces > 1)
+        decision = MINOR;
     if (unfinished || any_prose_major || any_dangling || ncycles || nu || open)
         decision = MAJOR;
     if (claims_false) decision = REJECT;
@@ -671,6 +677,7 @@ int main(int argc, char **argv)
     if (open)                             strcat(codes, " O");
     if (unread)                           strcat(codes, " L");
     if (pieces > 1)                       strcat(codes, " S");
+    if (nx)                               strcat(codes, " E");
     if (nn)                               strcat(codes, " N");
     if (nw)                               strcat(codes, " W");
     if (nc)                               strcat(codes, " C");
@@ -813,6 +820,12 @@ int main(int argc, char **argv)
     if (pieces > 1) {
         number(n, sizeof n, pieces, 0);
         pf("The citations fall into %s pieces. The paper may be %s papers.", n, n);
+        comment();
+    }
+
+    if (nx) {
+        if (nx == 1) pf("Line%s is left to the reader. Please include it.", el);
+        else pf("Lines%s are left to the reader. Please include them.", el);
         comment();
     }
 

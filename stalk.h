@@ -49,9 +49,16 @@ static char *lines[MAX_LINES];
 static int nlines;
 static int pc;
 
+/*
+ * The reader. "Left to the reader." reads one number from here.
+ * The author sets it to stdin. The referee leaves it empty: the
+ * referee does not do exercises.
+ */
+static FILE *the_reader;
+
 static void index_source(void);
 
-/* read -- the one impurity. the source is the initial object. */
+/* read -- an impurity. the source is the initial object. the reader is the other. */
 static int read_source(const char *file)
 {
     FILE *f = fopen(file, "r");
@@ -118,7 +125,8 @@ enum {
     JMP_, JZ_, JNZ_,
     HALT_, NOP_,
     CALL_, RET_, LOOP_, REPEAT_,
-    COVER_, TRANS_, GLUE_
+    COVER_, TRANS_, GLUE_,
+    READ_
 };
 
 typedef struct {
@@ -161,6 +169,8 @@ static const Phrase PH[] = {
     { "cover",                         COVER_, 0 },
     { "the transition",                TRANS_, 0 },
     { "by gluing",                     GLUE_,  0 },
+    /* the reader */
+    { "left to the reader",            READ_,  0 },
     /* abbreviations -- the working mathematician's shorthand */
     { "WLOG",                          POP_,   0 },
     { "wlog",                          POP_,   0 },
@@ -638,6 +648,13 @@ static int step(FILE *derived, Observer obs, void *ctx)
                         fprintf(derived, "%s%lld", i ? ", " : "", cls[i]);
                     fprintf(derived, ")\n");
                 }
+                break;
+            }
+            case READ_: {
+                /* the reader gives a number, or nothing. nothing is not 0. */
+                long long v;
+                if (the_reader && fscanf(the_reader, "%lld", &v) == 1)
+                    push(v);
                 break;
             }
             }

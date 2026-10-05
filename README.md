@@ -59,6 +59,7 @@ The computation is the proof.
 | `cover` | | COVER | A new cover, by the opens named on the line: U1, U2, ... |
 | `the transition` | | TRANS | The transition on two opens: an integer. |
 | `by gluing` | | GLUE | 1 if the transitions are a coboundary. Otherwise 0, and the class leaks. |
+| `left to the reader` | | READ | The reader gives a number. Or nothing. |
 | `QED` | | HALT | The proof is complete. |
 | `clearly` | | NOP | Obviously. Contributes nothing. |
 | `it is well known` | `TFAE` | NOP | Everyone knows this. Nobody cites it. |
@@ -89,8 +90,8 @@ See `examples/` for 22 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
-descent, Collatz from 27, the circle by three arcs and by two, and a
-lemma used twice. `submissions/` holds three more. They do not
+descent, Collatz from 27, the circle by three arcs and by two, a
+lemma used twice, and the reader's square. `submissions/` holds three more. They do not
 terminate. Only the referee reads them.
 
 ## Derived Functors
@@ -201,6 +202,30 @@ that see the hole without being told.
 
 The nerve is a graph. Triple overlaps are not seen.
 
+## The Reader
+
+`Left to the reader.` reads one number from stdin. If the reader gives
+nothing, nothing is pushed. Nothing is not 0.
+
+```
+echo 12 | ./sheaf examples/square.sheaf
+```
+
+The square is 144. The reader knows 12. Nobody knows 144.
+
+sheaf has I. It does not have O. Haskell has IO. sheaf has the half
+that listens.
+
+`examples/exercise.sheaf` has always begun "Exercise 3.7.12. Left to
+the reader." It now waits for the reader. The tests give the reader
+nothing.
+
+The referee does not do exercises. It reads as if the reader gave
+nothing, and says what a referee says: "Line 1 is left to the reader.
+Please include it." `examples/square.sheaf` uses what the reader
+gives, so to the referee it uses hypotheses that were never
+introduced.
+
 ## The Referee
 
 ```
@@ -260,6 +285,7 @@ The codes:
 | O | Hypotheses are still open at QED. | major |
 | L | A lemma is never cited, so its proof was not read. | minor |
 | S | The citations fall into pieces. The paper may be several papers. | minor |
+| E | It is left to the reader. Please include it. | minor |
 | N | `NTS`, `WTS` or `RTP`. The need is stated. | minor |
 | W | It is well known. No reference is given. | minor |
 | C | Clearly. | minor |
@@ -273,7 +299,7 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 25 examples, 12 are accepted, 6 need minor revision, 5 need
+Of the 26 examples, 11 are accepted, 7 need minor revision, 6 need
 major revision, and 2 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -360,12 +386,12 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 28 reviews, 18 reach a fixed point by the third round. The
+Of the 29 reviews, 19 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 7 of
-them. All 18 recommend major revision.
+them. All 19 recommend major revision.
 
-In 16 of the 18, the reader was sent back by the words the referee
+In 17 of the 19, the reader was sent back by the words the referee
 used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
