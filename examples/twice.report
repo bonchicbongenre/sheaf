@@ -1,20 +1,20 @@
 EDITORIAL OFFICE -- REFEREE REPORT
 ------------------------------------------------------------
-manuscript        les.sheaf
-lines             41
-steps             15
+manuscript        twice.sheaf
+lines             22
+steps             13
 hypotheses open   0
-claims            0 checked
-citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+claims            1 checked, 0 false
+citation graph    V 3, E 3, H^0 1, H^1 1, chi 0
 codes             none
-result            unable to see
+result            N/A
 recommendation    ACCEPT
 ------------------------------------------------------------
 
 Comments to the author
 
-The manuscript begins: "The long exact sequence in cohomology." It
-takes 15 steps, observes three times and leaks four obstructions.
+The manuscript begins: "Lemma 1. Doubling." It takes 13 steps and
+publishes once.
 
 The result did not reach me. I have checked what I could.
 

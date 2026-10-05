@@ -5,7 +5,8 @@ lines             56
 steps             86
 hypotheses open   0
 claims            1 checked, 0 false
-codes             L
+citation graph    V 3, E 1, H^0 2, H^1 0, chi 2
+codes             L S
 result            on file
 recommendation    MINOR REVISION
 ------------------------------------------------------------
@@ -18,6 +19,9 @@ and publishes once.
 I did not see what the proof arrives at. I have read the rest.
 
 1. Lemma 2 is never cited, so its proof was not read.
+
+2. The citations fall into two pieces. The paper may be two
+   papers.
 
 Recommendation: minor revision.
 

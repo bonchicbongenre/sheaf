@@ -5,6 +5,7 @@ lines             10
 steps             100000 (reading stopped)
 hypotheses open   not reached
 claims            0 checked
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
 codes             R P U
 result            pending
 recommendation    MAJOR REVISION

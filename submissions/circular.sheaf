@@ -1,0 +1,15 @@
+Lemma 1. The first holds.
+
+By Lemma 2, it holds.
+This proves the lemma.
+
+Lemma 2. The second holds.
+
+By Lemma 1, it holds.
+This proves the lemma.
+
+Theorem 1. Both hold.
+
+By Lemma 1, it holds.
+
+QED.

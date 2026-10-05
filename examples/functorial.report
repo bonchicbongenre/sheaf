@@ -5,6 +5,7 @@ lines             5
 steps             2 (1 of them empty)
 hypotheses open   0
 claims            0 checked
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
 codes             C
 result            pending
 recommendation    MINOR REVISION

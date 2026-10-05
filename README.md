@@ -89,9 +89,9 @@ See `examples/` for 22 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
-descent, Collatz from 27, and the circle, by three arcs and by two.
-`submissions/` holds two more. They do not terminate. Only the
-referee reads them.
+descent, Collatz from 27, the circle by three arcs and by two, and a
+lemma used twice. `submissions/` holds three more. They do not
+terminate. Only the referee reads them.
 
 ## Derived Functors
 
@@ -220,6 +220,7 @@ lines             30
 steps             20 (2 of them empty)
 hypotheses open   3
 claims            1 checked, 1 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
 codes             F O W C
 result            see attached
 recommendation    REJECT
@@ -254,9 +255,11 @@ The codes:
 | R | The referee read 100000 lines and did not reach the end. | major |
 | P | A phrase performs from inside a sentence. | major; minor if it does nothing |
 | D | A citation names a heading that is not there. | major |
+| X | The citations go round. The argument is circular. | major |
 | U | A hypothesis is used that was never introduced. The stack was empty. | major |
 | O | Hypotheses are still open at QED. | major |
 | L | A lemma is never cited, so its proof was not read. | minor |
+| S | The citations fall into pieces. The paper may be several papers. | minor |
 | N | `NTS`, `WTS` or `RTP`. The need is stated. | minor |
 | W | It is well known. No reference is given. | minor |
 | C | Clearly. | minor |
@@ -270,7 +273,7 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 24 examples, 11 are accepted, 6 need minor revision, 5 need
+Of the 25 examples, 12 are accepted, 6 need minor revision, 5 need
 major revision, and 2 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -280,6 +283,35 @@ The referee confirms that the sum of the first hundred numbers is
 that 27 reaches 1 in 111 steps. It saw none of these numbers. Of
 `collatz.sheaf` it asks for a reference for "It is well known that
 this terminates."
+
+## The Cohomology of the Proof
+
+The referee reads the citations from the whole text, not from the
+run, as a referee reads. The citation graph has a vertex for the text
+and one for each lemma, proposition, corollary and claim, and an edge
+for each citation, from the proof it sits in to what it cites. A
+theorem belongs to the text.
+
+```
+citation graph    V 3, E 3, H^0 1, H^1 1, chi 0
+```
+
+H^0 counts the pieces. If there are two, the paper may be two papers.
+H^1 counts the independent cycles. chi = V - E = H^0 - H^1.
+
+H^1 is not circularity. `examples/twice.sheaf` cites one lemma from
+two places, and `submissions/circular.sheaf` has two lemmas that cite
+each other. Both read V 3, E 3, H^0 1, H^1 1, chi 0. The first is
+accepted. The second does not terminate, and the referee says why:
+
+```
+Lemma 1 cites Lemma 2, which cites Lemma 1. The argument is
+circular.
+```
+
+The cohomology does not see the difference. The direction of the
+citations does. The referee follows each citation forward until one
+comes back.
 
 ## False Friends
 
@@ -328,17 +360,17 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 26 reviews, 17 reach a fixed point by the third round. The
+Of the 28 reviews, 18 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 7 of
-them. All 17 recommend major revision.
+them. All 18 recommend major revision.
 
-In 15 of the 17, the reader was sent back by the words the referee
+In 16 of the 18, the reader was sent back by the words the referee
 used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-The other 9 reviews do not come round in 16 rounds. Their referee
+The other 10 reviews do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report publishes. Each "publishes" publishes, and has
 to be reported. The report grows by 6 lines a round.

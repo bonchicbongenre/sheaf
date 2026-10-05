@@ -475,6 +475,134 @@ static unsigned long fnv(const char *s)
     return h;
 }
 
+/* ---- the citation graph ---- */
+
+/*
+ * Read from the whole text, not from the run, as a referee reads.
+ * A vertex for the text, and one for each lemma, proposition,
+ * corollary and claim. An edge for each citation, from the proof it
+ * sits in to what it cites. A theorem belongs to the text.
+ */
+#define MAX_V      (MAX_LABELS + 1)
+#define MAX_CYCLES 8
+
+static int nv, ne;
+static int vlabel[MAX_V];        /* vertex -> label; the text is -1 */
+static int *ea, *eb;
+static int pieces, rank1;        /* H^0, H^1 */
+static char cycles[MAX_CYCLES][512];
+static int ncycles;
+static int *color, *path;
+static int depth;
+
+static void vertex_name(int v, char *out, size_t cap, int capital)
+{
+    if (vlabel[v] < 0) {
+        snprintf(out, cap, "%s", capital ? "The text" : "the text");
+        return;
+    }
+    const Label *L = &labels[vlabel[v]];
+    snprintf(out, cap, "%s%s%s", KINDS[L->kind], L->id[0] ? NB : "", L->id);
+}
+
+static void read_citations(void)
+{
+    int *owner = calloc((size_t)(nlines ? nlines : 1), sizeof *owner);
+    ea = calloc((size_t)(nlines ? nlines : 1), sizeof *ea);
+    eb = calloc((size_t)(nlines ? nlines : 1), sizeof *eb);
+    if (!owner || !ea || !eb) { free(owner); return; }
+
+    nv = 1;
+    vlabel[0] = -1;
+    for (int l = 0; l < nlabels && nv < MAX_V; l++) {
+        if (labels[l].kind >= NLAZY) continue;
+        int v = nv++;
+        vlabel[v] = l;
+        int end = skip_to[labels[l].line];
+        if (end == NOWHERE) end = labels[l].line + 1;
+        for (int i = labels[l].line; i < end && i < nlines; i++)
+            owner[i] = v;
+    }
+
+    for (int i = 0; i < nlines; i++) {
+        const char *at;
+        const Phrase *p = match(lines[i], &at);
+        if (!p || p->op != CALL_) continue;
+        char id[32];
+        read_id(at + strlen(p->text), id, sizeof id);
+        int line = find_label(kind_named(p->text + 3), id);
+        if (line == NOWHERE) continue;
+        int to = 0;
+        for (int v = 1; v < nv; v++)
+            if (labels[vlabel[v]].line == line) to = v;
+        ea[ne] = owner[i];
+        eb[ne] = to;
+        ne++;
+    }
+
+    long long *zero = calloc((size_t)(ne ? ne : 1), sizeof *zero);
+    long long *cls = calloc((size_t)(ne ? ne : 1), sizeof *cls);
+    if (zero && cls) {
+        rank1 = cech_h1(nv, ne, ea, eb, zero, cls);
+        pieces = nv - ne + rank1;
+    }
+    free(zero);
+    free(cls);
+    free(owner);
+}
+
+/* a directed cycle: the argument comes back to where it began */
+static void circle_back(int from)
+{
+    char buf[512] = "", name[64];
+    for (int i = from; i < depth; i++) {
+        vertex_name(path[i], name, sizeof name, i == from);
+        size_t l = strlen(buf);
+        snprintf(buf + l, sizeof buf - l, "%s%s",
+                 i == from ? "" : (i == from + 1 ? " cites " : ", which cites "), name);
+    }
+    size_t l = strlen(buf);
+    if (depth - from == 1)
+        snprintf(buf + l, sizeof buf - l, " cites itself.");
+    else {
+        vertex_name(path[from], name, sizeof name, 0);
+        snprintf(buf + l, sizeof buf - l, ", which cites %s.", name);
+    }
+    for (int c = 0; c < ncycles; c++)
+        if (strcmp(cycles[c], buf) == 0) return;
+    if (ncycles < MAX_CYCLES)
+        snprintf(cycles[ncycles++], sizeof cycles[0], "%s", buf);
+}
+
+static void search(int u)
+{
+    color[u] = 1;
+    path[depth++] = u;
+    for (int e = 0; e < ne; e++) {
+        if (ea[e] != u) continue;
+        int v = eb[e];
+        if (color[v] == 1) {
+            for (int i = 0; i < depth; i++)
+                if (path[i] == v) { circle_back(i); break; }
+        } else if (color[v] == 0) {
+            search(v);
+        }
+    }
+    depth--;
+    color[u] = 2;
+}
+
+static void find_circles(void)
+{
+    color = calloc((size_t)nv, sizeof *color);
+    path = calloc((size_t)nv, sizeof *path);
+    if (color && path)
+        for (int v = 0; v < nv; v++)
+            if (!color[v]) search(v);
+    free(color);
+    free(path);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) {
@@ -518,9 +646,13 @@ int main(int argc, char **argv)
             !mark[labels[l].line].called)
             unread++;
 
+    read_citations();
+    find_circles();
+
     int decision = ACCEPT;
-    if (any_prose_minor || nn || nw || nc || unread) decision = MINOR;
-    if (unfinished || any_prose_major || any_dangling || nu || open) decision = MAJOR;
+    if (any_prose_minor || nn || nw || nc || unread || pieces > 1) decision = MINOR;
+    if (unfinished || any_prose_major || any_dangling || ncycles || nu || open)
+        decision = MAJOR;
     if (claims_false) decision = REJECT;
 
     const char *name = strrchr(argv[1], '/');
@@ -534,9 +666,11 @@ int main(int argc, char **argv)
     if (unfinished)                       strcat(codes, " R");
     if (any_prose_major || any_prose_minor) strcat(codes, " P");
     if (any_dangling)                     strcat(codes, " D");
+    if (ncycles)                          strcat(codes, " X");
     if (nu)                               strcat(codes, " U");
     if (open)                             strcat(codes, " O");
     if (unread)                           strcat(codes, " L");
+    if (pieces > 1)                       strcat(codes, " S");
     if (nn)                               strcat(codes, " N");
     if (nw)                               strcat(codes, " W");
     if (nc)                               strcat(codes, " C");
@@ -560,6 +694,8 @@ int main(int argc, char **argv)
                 claims_checked, claims_false);
     else
         fprintf(stderr, "claims            0 checked\n");
+    fprintf(stderr, "citation graph    V %d, E %d, H^0 %d, H^1 %d, chi %d\n",
+            nv, ne, pieces, rank1, nv - ne);
     fprintf(stderr, "codes            %s\n", codes[0] ? codes : " none");
     fprintf(stderr, "result            %s\n", FIELD[h % NFIELD]);
     fprintf(stderr, "recommendation    %s\n", DECISION_FORM[decision]);
@@ -637,6 +773,11 @@ int main(int argc, char **argv)
             comment();
         }
 
+    for (int c = 0; c < ncycles; c++) {
+        pf("%s The argument is circular.", cycles[c]);
+        comment();
+    }
+
     if (nu) {
         if (nu == 1) pf("Line%s uses a hypothesis that was never introduced.", ul);
         else pf("Lines%s use hypotheses that were never introduced.", ul);
@@ -669,6 +810,12 @@ int main(int argc, char **argv)
             comment();
         }
 
+    if (pieces > 1) {
+        number(n, sizeof n, pieces, 0);
+        pf("The citations fall into %s pieces. The paper may be %s papers.", n, n);
+        comment();
+    }
+
     if (nn) {
         if (nn == 1) pf("Line%s says what needs to be shown. Please show it.", nl);
         else pf("Lines%s say what needs to be shown. Please show it.", nl);
@@ -695,6 +842,8 @@ int main(int argc, char **argv)
     pf("Recommendation: %s.", DECISION_PROSE[decision]);
     pend("");
 
+    free(ea);
+    free(eb);
     free(mark);
     free_source();
     return decision;

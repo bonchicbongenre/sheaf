@@ -5,6 +5,7 @@ lines             74
 steps             44 (8 of them empty)
 hypotheses open   0
 claims            2 checked, 0 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
 codes             U N W C
 result            pending
 recommendation    MAJOR REVISION
