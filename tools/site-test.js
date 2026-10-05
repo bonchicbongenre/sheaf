@@ -17,7 +17,14 @@ for (const dir of ['examples', 'submissions']) {
 
     const r = sheaf.referee(text, f);
     const want = read(path.join(root, dir, name + '.report'));
-    const ok1 = r.report === want;
+    let ok1 = r.report === want;
+
+    // the editor's letter, where there is one
+    const letter = path.join(root, dir, name + '.letter');
+    if (fs.existsSync(letter) && sheaf.editor(text, f).report !== read(letter)) {
+      ok1 = false;
+      console.log('  ' + name + ': the letter differs');
+    }
 
     // the author, with a reader who gives nothing; submissions do not end
     let ok2 = true;

@@ -126,7 +126,8 @@ enum {
     HALT_, NOP_,
     CALL_, RET_, LOOP_, REPEAT_,
     COVER_, TRANS_, GLUE_,
-    READ_
+    READ_,
+    YONEDA_, NONSENSE_, SIMILAR_
 };
 
 typedef struct {
@@ -171,6 +172,10 @@ static const Phrase PH[] = {
     { "by gluing",                     GLUE_,  0 },
     /* the reader */
     { "left to the reader",            READ_,  0 },
+    /* abstract nonsense */
+    { "by yoneda",                     YONEDA_,   0 },
+    { "by abstract nonsense",          NONSENSE_, 0 },
+    { "similarly",                     SIMILAR_,  0 },
     /* abbreviations -- the working mathematician's shorthand */
     { "WLOG",                          POP_,   0 },
     { "wlog",                          POP_,   0 },
@@ -472,6 +477,10 @@ typedef struct {
     char          cite[48];    /* the heading it names, as named */
     int           glue;        /* by gluing: 1 glued, 0 not, -1 no gluing */
     int           b1;          /* the rank of H^1 of the nerve */
+    long          discharged;  /* by abstract nonsense: hypotheses cleared */
+    const Phrase *repeat;      /* similarly: the phrase performed again */
+    int           repeat_line; /* and the line it came from */
+    long          repeat_degree;
 } Event;
 
 /*
@@ -500,49 +509,45 @@ static int destination(const char *s, Event *e)
 typedef void (*Observer)(const Event *e, void *ctx);
 
 /*
- * Read one line and perform it. Obstructions leak to `derived`
- * (the author passes stderr; the referee passes NULL, and keeps
- * its own counsel). Returns 0 when the proof is over.
+ * "Similarly." performs the last line that performed, again. That
+ * line is never a "Similarly." itself.
  */
-static int step(FILE *derived, Observer obs, void *ctx)
-{
-    if (pc < 0 || pc >= nlines)
-        return 0;
+static int last_line = NOWHERE;
 
-    const char *ln = lines[pc];
-    Event e;
-    memset(&e, 0, sizeof e);
-    e.line = pc;
-    e.text = ln;
-    e.degree = -1;
-    e.sp_before = sp;
-    e.top_before = sp > 0 ? stk[sp - 1] : 0;
-    e.target = NOWHERE;
-    e.glue = NOWHERE;
-    long u0 = underflow;
-    int running = 1;
+static void fresh(Event *e, int line)
+{
+    memset(e, 0, sizeof *e);
+    e->line = line;
+    e->text = lines[line];
+    e->degree = -1;
+    e->sp_before = sp;
+    e->top_before = sp > 0 ? stk[sp - 1] : 0;
+    e->target = NOWHERE;
+    e->glue = NOWHERE;
+    e->repeat_line = NOWHERE;
+    e->repeat_degree = -1;
+}
+
+/* perform one line: a derived functor, or the leftmost phrase */
+static void perform(int line, Event *e, FILE *derived, int *running)
+{
+    const char *ln = lines[line];
     long degree;
 
-    pc++;
-
-    if (skip_to[e.line] != NOWHERE) {
-        /* a lemma nobody has cited yet. it is not read. */
-        pc = skip_to[e.line];
-        e.deferred = 1;
-    } else if ((degree = try_derived(ln)) >= 0) {
+    if ((degree = try_derived(ln)) >= 0) {
         /* derived functors: R^i observe/publish */
         long long v = pop();
-        e.degree = degree;
-        e.gave = 1;
-        e.given = v;
+        e->degree = degree;
+        e->gave = 1;
+        e->given = v;
         if (degree >= 1 && derived)
             fprintf(derived, "H^%ld(X,F) = %lld\n", degree, v);
         /* R^0 = Gamma. pop. discard. not implemented. */
     } else {
         const char *at;
         const Phrase *p = match(ln, &at);
-        e.p = p;
-        e.at = at;
+        e->p = p;
+        e->at = at;
 
         if (p) {
             long long arg = 0;
@@ -572,42 +577,42 @@ static int step(FILE *derived, Observer obs, void *ctx)
                                                               break;
             case EMIT_:  /* Gamma is not implemented. */
             case PRINT_: /* the referee has not responded. */
-                         e.gave = 1; e.given = pop();         break;
+                         e->gave = 1; e->given = pop();       break;
             case JMP_:
-                e.target = destination(at + strlen(p->text), &e);
-                if (e.target != NOWHERE) pc = e.target;
+                e->target = destination(at + strlen(p->text), e);
+                if (e->target != NOWHERE) pc = e->target;
                 break;
             case JZ_:
-                e.target = destination(at + strlen(p->text), &e);
-                if (!pop() && e.target != NOWHERE) pc = e.target;
+                e->target = destination(at + strlen(p->text), e);
+                if (!pop() && e->target != NOWHERE) pc = e->target;
                 break;
             case JNZ_:
-                e.target = destination(at + strlen(p->text), &e);
-                if (pop() && e.target != NOWHERE) pc = e.target;
+                e->target = destination(at + strlen(p->text), e);
+                if (pop() && e->target != NOWHERE) pc = e->target;
                 break;
-            case HALT_:  running = 0;                         break;
+            case HALT_:  *running = 0;                        break;
             case NOP_:                                        break;
             case CALL_: {
                 /* by Lemma 2.3: go there, and come back */
                 int k = kind_named(p->text + 3);
                 char id[32];
                 read_id(at + strlen(p->text), id, sizeof id);
-                snprintf(e.cite, sizeof e.cite, "%s%s%s",
+                snprintf(e->cite, sizeof e->cite, "%s%s%s",
                          KINDS[k], *id ? " " : "", id);
                 int l = find_label(k, id);
                 if (l == NOWHERE) {
-                    e.unresolved = 1;
+                    e->unresolved = 1;
                 } else {
                     if (rsp < STACK_CAP) rstk[rsp++] = pc;
-                    pc = e.target = l + 1;
+                    pc = e->target = l + 1;
                 }
                 break;
             }
             case RET_:   if (rsp > 0) pc = rstk[--rsp];       break;
             case LOOP_:                                       break;
             case REPEAT_:
-                if (loop_head[e.line] != NOWHERE && peek())
-                    pc = loop_head[e.line] + 1;
+                if (loop_head[line] != NOWHERE && peek())
+                    pc = loop_head[line] + 1;
                 break;
             case COVER_: {
                 /* a new cover: the opens named on the line */
@@ -641,8 +646,8 @@ static int step(FILE *derived, Observer obs, void *ctx)
                 for (int i = 0; i < b1; i++)
                     if (cls[i]) glued = 0;
                 push(glued);
-                e.glue = glued;
-                e.b1 = b1;
+                e->glue = glued;
+                e->b1 = b1;
                 if (!glued && derived) {
                     fprintf(derived, "H^1(U,Z) = Z^%d; the class is (", b1);
                     for (int i = 0; i < b1; i++)
@@ -658,9 +663,61 @@ static int step(FILE *derived, Observer obs, void *ctx)
                     push(v);
                 break;
             }
+            case YONEDA_:
+                /* an object is its observations. none are kept. */
+                break;
+            case NONSENSE_:
+                /* every open hypothesis, discharged at once */
+                e->discharged = sp;
+                sp = 0;
+                break;
+            case SIMILAR_:
+                /* the last line that performed, performed again */
+                if (last_line != NOWHERE) {
+                    Event again;
+                    fresh(&again, last_line);
+                    perform(last_line, &again, derived, running);
+                    e->repeat = again.p;
+                    e->repeat_line = last_line;
+                    e->repeat_degree = again.degree;
+                    e->gave = again.gave;
+                    e->given = again.given;
+                    e->glue = again.glue;
+                    e->b1 = again.b1;
+                    e->discharged = again.discharged;
+                }
+                break;
             }
         }
         /* unrecognized lines: silence. */
+    }
+}
+
+/*
+ * Read one line and perform it. Obstructions leak to `derived`
+ * (the author passes stderr; the referee passes NULL, and keeps
+ * its own counsel). Returns 0 when the proof is over.
+ */
+static int step(FILE *derived, Observer obs, void *ctx)
+{
+    if (pc < 0 || pc >= nlines)
+        return 0;
+
+    Event e;
+    fresh(&e, pc);
+    long u0 = underflow;
+    int running = 1;
+
+    pc++;
+
+    if (skip_to[e.line] != NOWHERE) {
+        /* a lemma nobody has cited yet. it is not read. */
+        pc = skip_to[e.line];
+        e.deferred = 1;
+    } else {
+        perform(e.line, &e, derived, &running);
+        if (e.degree >= 0 || (e.p && e.p->op != SIMILAR_))
+            last_line = e.line;
     }
 
     e.underflows = underflow - u0;

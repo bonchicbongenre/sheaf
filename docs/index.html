@@ -283,6 +283,7 @@ footer { margin-top: 3rem; text-align: center; }
   <div class="actions">
     <button class="go" id="run">Run</button>
     <button class="go quiet" id="submit">Submit to the referee</button>
+    <button class="go quiet" id="editor">Send to the editor</button>
     <button class="go quiet" id="resubmit" hidden>Resubmit without changes</button>
     <button class="go quiet" id="again" hidden>Referee the report</button>
   </div>
@@ -307,6 +308,10 @@ footer { margin-top: 3rem; text-align: center; }
 
 <p>Headings name lines. <code>By Lemma 2.3,</code> cites it, and the reader comes back at <code>This proves the lemma.</code> Lemmas are lazy: a lemma is proved when it is cited, and not before. <code>By induction.</code> and <code>This completes the induction.</code> are the loop. Gauss put his slate on the teacher's desk and said "Ligget se": there it lies.</p>
 
+<h2>Abstract nonsense</h2>
+
+<p><code>By Yoneda.</code> An object is determined by its observations. Every observation of a sheaf program is discarded, so by Yoneda every sheaf program is isomorphic to every other. <code>By abstract nonsense.</code> discharges every open hypothesis at once. Abstract nonsense is the least nonsense there is. <code>Similarly.</code> does the last thing again, which is rarely what was meant.</p>
+
 <h2>Gluing</h2>
 
 <p><code>Cover the circle by U1, U2 and U3.</code> The transitions on the overlaps are a Cech 1-cochain on the nerve, and <code>By gluing.</code> asks whether it is a coboundary. On the circle the branches of the logarithm do not glue, and the class leaks: <code>H^1(U,Z) = Z^1; the class is (1)</code>. With two arcs the nerve is one edge, everything glues, and the circle has no hole.</p>
@@ -318,6 +323,8 @@ footer { margin-top: 3rem; text-align: center; }
 <h2>The referee</h2>
 
 <p>The referee is a second program. It reads the manuscript while the proof runs beside it, and writes a report. It checks the claims in the prose against the stack, and says whether they hold, never what holds. It finds commentary that performs, hypotheses never introduced or never discharged, citations to nothing, circular arguments, and things that are well known. It does not do exercises. Its confidential comments to the editor go to file descriptor 3, if the editor has opened it. Here, they go to the console.</p>
+
+<p>The same program, called <code>reviewer2</code>, is Reviewer 2: it reads the same paper, is one level harsher, cannot see the result, and knows it is not new. Called <code>editor</code>, it writes the decision letter and encloses both reports. The editor sees no reason to disagree with Reviewer 2.</p>
 
 <table>
 <tr><td>F</td><td>A claim is false.</td></tr>
@@ -478,6 +485,15 @@ document.getElementById('submit').addEventListener('click', function () {
   rounds = 1; reviews = 0; lastReport = r.report;
   show(r);
   said.textContent = 'The referee has responded.';
+});
+
+document.getElementById('editor').addEventListener('click', function () {
+  clear();
+  var r = sheaf.editor(src.value, manuscriptName());
+  report.textContent = r.report;
+  report.hidden = false;
+  console.info(r.confidential);
+  said.textContent = 'The editor has written. Both reports are enclosed.';
 });
 
 resubmit.addEventListener('click', function () {

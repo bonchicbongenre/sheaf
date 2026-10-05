@@ -1,0 +1,26 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        yoneda.sheaf
+lines             11
+steps             6
+hypotheses open   0
+claims            0 checked
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             none
+result            not visible
+recommendation    ACCEPT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "Theorem 1. This manuscript is every
+manuscript." It takes 6 steps and observes once.
+
+I read the proof without its result. My comments follow.
+
+1. Line 7 invokes Yoneda. By Yoneda, this manuscript is isomorphic
+   to every manuscript that prints the same thing. That is every
+   manuscript.
+
+Recommendation: accept.
+

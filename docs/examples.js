@@ -81,6 +81,11 @@ var SHEAF_EXAMPLES = [
   "text": "The long exact sequence in cohomology.\n\nGiven 0 -> F -> G -> H -> 0, the connecting\nhomomorphism delta produces:\n\n0 -> H^0(F) -> H^0(G) -> H^0(H) ->\n  H^1(F) -> H^1(G) -> H^1(H) -> ...\n\nSuppose 3.\nR^0 observe.\n\nSuppose 5.\nR^0 observe.\n\nSuppose 7.\nR^0 observe.\n\nThree global sections. All consumed. None visible.\nThe H^0 terms vanish into the implementation gap.\n\nNow the connecting homomorphism.\n\nSuppose 11.\nR^1 observe.\n\nSuppose 13.\nR^1 observe.\n\nSuppose 17.\nR^1 observe.\n\nThe first obstructions leak. Primes, because the stalks\nare local rings. The sequence is exact on stderr.\n\nSuppose 0.\nR^2 observe.\n\nHigher cohomology vanishes. The spectral sequence\ndegenerates at E_2. As expected.\n\nQED.\n"
  },
  {
+  "name": "nonsense.sheaf",
+  "dir": "examples",
+  "text": "Theorem 1. Everything follows.\n\nSuppose 1.\nSuppose 2.\nSuppose 3.\nTensor.\n\nBy abstract nonsense.\n\nQED.\n"
+ },
+ {
   "name": "proof.sheaf",
   "dir": "examples",
   "text": "Suppose 6.\nSuppose 7.\nTensor.\nPublish.\nQED.\n"
@@ -99,6 +104,11 @@ var SHEAF_EXAMPLES = [
   "name": "seminar.sheaf",
   "dir": "examples",
   "text": "The Algebraic Geometry Seminar. Thursdays, 3:30 PM.\nCookies are provided. The room is half empty.\n\nSuppose 1.\nIt is well known that the following construction is standard.\nSuppose 2.\nDirect sum.\nRecall.\nTensor.\n\nA hand is raised. \"Could you clarify the role of the\ndirect sum in the previous step?\"\n\nWLOG.\n\n\"Good question. So as I was saying...\"\n\nSuppose 3.\nTensor.\n\n\"Does that answer your question?\"\n\nIt is well known.\n\nPublish.\n\nThere are no further questions. There are never\nfurther questions. The cookies are gone.\n\nQED.\n"
+ },
+ {
+  "name": "similarly.sheaf",
+  "dir": "examples",
+  "text": "Theorem 1. Both cases hold.\n\nThe first case.\n\nSuppose 3.\nSuppose 4.\nTensor.\n\nSimilarly, the second case.\n\nPublish.\n\nQED.\n"
  },
  {
   "name": "square.sheaf",
@@ -139,6 +149,11 @@ var SHEAF_EXAMPLES = [
   "name": "wiles.sheaf",
   "dir": "examples",
   "text": "It is well known that every semistable elliptic curve\nover Q is modular. We verify a small case.\n\nSuppose 0.\nSuppose 1.\nPushforward.\n\nSuppose 1.\nSuppose 1.\nPushforward.\n\nSuppose 2.\nSuppose 2.\nPushforward.\n\nWe compute the sum of the first three coefficients.\n\nSuppose 0.\nPullback.\nSuppose 1.\nPullback.\nDirect sum.\nSuppose 2.\nPullback.\nDirect sum.\n\nThe result is 4. It is well known. Nobody will see it.\nPublish.\n\nThe margin is too narrow. The proof is too long.\nThe global sections are zero. The theorem is true.\n\nQED.\n"
+ },
+ {
+  "name": "yoneda.sheaf",
+  "dir": "examples",
+  "text": "Theorem 1. This manuscript is every manuscript.\n\nSuppose 6.\nSuppose 7.\nTensor.\n\nBy Yoneda, it suffices to observe it.\n\nObserve.\n\nQED.\n"
  },
  {
   "name": "circular.sheaf",

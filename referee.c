@@ -20,9 +20,15 @@
  * confidential comments to the editor go to file descriptor 3. the
  * editor may not have opened it.
  *
+ * called as reviewer2, it is Reviewer 2: one level harsher, and sure
+ * the result is not new. called as editor, it writes the decision
+ * letter, and encloses both reports.
+ *
  * cc -std=c99 -Wall -Wextra -pedantic -o referee referee.c
  *
  * usage: referee manuscript.sheaf
+ *        reviewer2 manuscript.sheaf
+ *        editor manuscript.sheaf
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
@@ -76,9 +82,24 @@ static const char *CONFIDENTIAL[] = {
     "This took me four minutes.",
 };
 
+/* Reviewer 2 wears the lack differently */
+static const char *WORN2[] = {
+    "I could not see the result. I have seen results like it.",
+    "I did not see the result, and I do not need to.",
+    "The result was not visible to me. Nor, I suspect, to the author.",
+};
+
+static const char *CONFIDENTIAL2[] = {
+    "I have not read the paper, but I know the area.",
+    "I would reject this even if it were correct.",
+    "This is my third review of this paper, at a third journal.",
+};
+
 #define NFIELD (sizeof FIELD / sizeof FIELD[0])
 #define NWORN  (sizeof WORN / sizeof WORN[0])
 #define NCONF  (sizeof CONFIDENTIAL / sizeof CONFIDENTIAL[0])
+#define NWORN2 (sizeof WORN2 / sizeof WORN2[0])
+#define NCONF2 (sizeof CONFIDENTIAL2 / sizeof CONFIDENTIAL2[0])
 
 /* ---- what the referee marks, line by line ---- */
 
@@ -99,6 +120,9 @@ typedef struct {
     char dangling;       /* and it is not there */
     int  dangling_op;
     char called;         /* a heading someone cited */
+    char yoneda;         /* by Yoneda */
+    long discharged;     /* by abstract nonsense: how many */
+    int  similar_of;     /* similarly: the line it repeats, from 1 */
 } Mark;
 
 static Mark *mark;
@@ -283,11 +307,22 @@ static void read_line(const Event *e, void *ctx)
             observes++;
     } else if (e->p) {
         const Phrase *p = e->p;
+        const Phrase *q = e->repeat ? e->repeat : p;   /* what was performed */
         steps++;
-        if (p->op == NOP_)  empty_steps++;
-        if (p->op == EMIT_) observes++;
-        if (p->op == PRINT_) publishes++;
-        if (p->op == HALT_) halted = 1;
+        if (e->repeat_degree >= 1)
+            leaks++;
+        else if (e->repeat_degree == 0) {
+            if (cistrstr(lines[e->repeat_line], "publish")) publishes++;
+            else observes++;
+        }
+        if (q->op == NOP_)  empty_steps++;
+        if (q->op == EMIT_) observes++;
+        if (q->op == PRINT_) publishes++;
+        if (q->op == HALT_) halted = 1;
+        if (p->op == YONEDA_) m->yoneda = 1;
+        if (e->discharged > m->discharged) m->discharged = e->discharged;
+        if (p->op == SIMILAR_ && e->repeat_line != NOWHERE && !m->similar_of)
+            m->similar_of = e->repeat_line + 1;
 
         if (is_instruction(e->text, e->at, p)) {
             if (first) {
@@ -329,8 +364,9 @@ static void read_line(const Event *e, void *ctx)
     if (e->underflows)
         m->underflow = 1;
     if (e->gave) {
-        if (e->degree >= 1) { have_obstruction = 1; obstruction = e->given; }
-        else                { have_section = 1;     section = e->given; }
+        long degree = e->degree >= 0 ? e->degree : e->repeat_degree;
+        if (degree >= 1) { have_obstruction = 1; obstruction = e->given; }
+        else             { have_section = 1;     section = e->given; }
     }
 }
 
@@ -338,6 +374,7 @@ static void read_line(const Event *e, void *ctx)
 
 static char para[16384];
 static size_t plen;
+static FILE *sink;           /* where the report is written */
 
 static void pf(const char *fmt, ...)
 {
@@ -363,7 +400,7 @@ static void pend(const char *lead)
     const char *s = para;
     int first = 1;
 
-    fputs(lead, stderr);
+    fputs(lead, sink);
     while (*s) {
         while (*s == ' ') s++;
         if (!*s) break;
@@ -371,18 +408,18 @@ static void pend(const char *lead)
         while (*s && *s != ' ') s++;
         size_t wl = (size_t)(s - w);
         if (!first && col + 1 + wl > WIDTH) {
-            fprintf(stderr, "\n%*s", (int)ind, "");
+            fprintf(sink, "\n%*s", (int)ind, "");
             col = ind;
         } else if (!first) {
-            fputc(' ', stderr);
+            fputc(' ', sink);
             col++;
         }
         for (size_t i = 0; i < wl; i++)
-            fputc(w[i] == '\001' ? ' ' : w[i], stderr);
+            fputc(w[i] == '\001' ? ' ' : w[i], sink);
         col += wl;
         first = 0;
     }
-    fputs("\n\n", stderr);
+    fputs("\n\n", sink);
     plen = 0;
     para[0] = '\0';
 }
@@ -470,6 +507,9 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case TRANS_:  return "sets a transition";
     case GLUE_:   return "glues";
     case READ_:   return "asks the reader";
+    case YONEDA_: return "invokes Yoneda";
+    case NONSENSE_: return "discharges every hypothesis";
+    case SIMILAR_: return "does the last thing again";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;
@@ -623,63 +663,69 @@ static void find_circles(void)
     free(path);
 }
 
-int main(int argc, char **argv)
+/* ---- what was found: one reading, for every report ---- */
+
+static int any_prose_major, any_prose_minor, any_dangling, unread, open_end, any_nonsense;
+static int nu, nw, nc, nn, nx;
+static char ul[1024], wl[1024], cl[1024], nl[1024], el[1024];
+static int decision1;
+static const char *name;
+static unsigned long h;
+
+static void find(const char *file)
 {
-    if (argc < 2) {
-        fprintf(stderr, "usage: referee manuscript.sheaf\n");
-        return 4;
-    }
-    if (read_source(argv[1]) != 0) {
-        fprintf(stderr, "referee: the manuscript did not arrive: %s\n", argv[1]);
-        return 4;
-    }
-
-    mark = calloc((size_t)(nlines ? nlines : 1), sizeof *mark);
-    if (!mark) return 4;
-
-    while (step(NULL, read_line, NULL))
-        if (lines_read >= BUDGET) { unfinished = 1; break; }
-
-    /* ---- what was found ---- */
-
-    int any_prose_major = 0, any_prose_minor = 0;
     for (int i = 0; i < nlines; i++) {
         if (!mark[i].prose) continue;
         if (mark[i].op == NOP_) any_prose_minor = 1;
         else any_prose_major = 1;
     }
-    char ul[1024], wl[1024], cl[1024], nl[1024], el[1024];
-    int nu = line_list(ul, sizeof ul, has_underflow);
-    int nw = line_list(wl, sizeof wl, has_w);
-    int nc = line_list(cl, sizeof cl, has_c);
-    int nn = line_list(nl, sizeof nl, has_n);
-    int nx = line_list(el, sizeof el, has_e);
-    int open = unfinished ? 0 : sp;
+    nu = line_list(ul, sizeof ul, has_underflow);
+    nw = line_list(wl, sizeof wl, has_w);
+    nc = line_list(cl, sizeof cl, has_c);
+    nn = line_list(nl, sizeof nl, has_n);
+    nx = line_list(el, sizeof el, has_e);
+    open_end = unfinished ? 0 : sp;
 
-    int any_dangling = 0;
     for (int i = 0; i < nlines; i++)
         if (mark[i].dangling) any_dangling = 1;
 
     /* lazy lemmas nobody cited: their proofs were never read */
-    int unread = 0;
     for (int l = 0; l < nlabels && !unfinished; l++)
         if (labels[l].kind < NLAZY && skip_to[labels[l].line] != NOWHERE &&
             !mark[labels[l].line].called)
             unread++;
 
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].discharged) any_nonsense = 1;
+
     read_citations();
     find_circles();
 
-    int decision = ACCEPT;
-    if (any_prose_minor || nn || nw || nc || nx || unread || pieces > 1)
-        decision = MINOR;
-    if (unfinished || any_prose_major || any_dangling || ncycles || nu || open)
-        decision = MAJOR;
-    if (claims_false) decision = REJECT;
+    decision1 = ACCEPT;
+    if (any_prose_minor || nn || nw || nc || nx || unread || pieces > 1 || any_nonsense)
+        decision1 = MINOR;
+    if (unfinished || any_prose_major || any_dangling || ncycles || nu || open_end)
+        decision1 = MAJOR;
+    if (claims_false) decision1 = REJECT;
 
-    const char *name = strrchr(argv[1], '/');
-    name = name ? name + 1 : argv[1];
-    unsigned long h = fnv(name);
+    name = strrchr(file, '/');
+    name = name ? name + 1 : file;
+    h = fnv(name);
+}
+
+/*
+ * The referee writes the report. So does Reviewer 2, from the same
+ * reading: one level harsher, never seeing the result, and sure it
+ * is not new.
+ */
+enum { REFEREE_1, REVIEWER_2 };
+
+static int write_report(int who)
+{
+    int decision = who == REFEREE_1 ? decision1
+                 : (decision1 < REJECT ? decision1 + 1 : REJECT);
+
+    comment_no = 0;
 
     /* ---- the form ---- */
 
@@ -690,43 +736,45 @@ int main(int argc, char **argv)
     if (any_dangling)                     strcat(codes, " D");
     if (ncycles)                          strcat(codes, " X");
     if (nu)                               strcat(codes, " U");
-    if (open)                             strcat(codes, " O");
+    if (open_end)                         strcat(codes, " O");
     if (unread)                           strcat(codes, " L");
     if (pieces > 1)                       strcat(codes, " S");
+    if (any_nonsense)                     strcat(codes, " A");
     if (nx)                               strcat(codes, " E");
     if (nn)                               strcat(codes, " N");
     if (nw)                               strcat(codes, " W");
     if (nc)                               strcat(codes, " C");
 
-    fprintf(stderr, "EDITORIAL OFFICE -- REFEREE REPORT\n");
-    fprintf(stderr, "------------------------------------------------------------\n");
-    fprintf(stderr, "manuscript        %s\n", name);
-    fprintf(stderr, "lines             %d\n", nlines);
+    fputs(who == REFEREE_1 ? "EDITORIAL OFFICE -- REFEREE REPORT\n"
+                           : "EDITORIAL OFFICE -- REPORT OF REVIEWER 2\n", sink);
+    fprintf(sink, "------------------------------------------------------------\n");
+    fprintf(sink, "manuscript        %s\n", name);
+    fprintf(sink, "lines             %d\n", nlines);
     if (unfinished)
-        fprintf(stderr, "steps             %ld (reading stopped)\n", steps);
+        fprintf(sink, "steps             %ld (reading stopped)\n", steps);
     else if (empty_steps)
-        fprintf(stderr, "steps             %ld (%ld of them empty)\n", steps, empty_steps);
+        fprintf(sink, "steps             %ld (%ld of them empty)\n", steps, empty_steps);
     else
-        fprintf(stderr, "steps             %ld\n", steps);
+        fprintf(sink, "steps             %ld\n", steps);
     if (unfinished)
-        fprintf(stderr, "hypotheses open   not reached\n");
+        fprintf(sink, "hypotheses open   not reached\n");
     else
-        fprintf(stderr, "hypotheses open   %d\n", open);
+        fprintf(sink, "hypotheses open   %d\n", open_end);
     if (claims_checked)
-        fprintf(stderr, "claims            %ld checked, %ld false\n",
+        fprintf(sink, "claims            %ld checked, %ld false\n",
                 claims_checked, claims_false);
     else
-        fprintf(stderr, "claims            0 checked\n");
-    fprintf(stderr, "citation graph    V %d, E %d, H^0 %d, H^1 %d, chi %d\n",
+        fprintf(sink, "claims            0 checked\n");
+    fprintf(sink, "citation graph    V %d, E %d, H^0 %d, H^1 %d, chi %d\n",
             nv, ne, pieces, rank1, nv - ne);
-    fprintf(stderr, "codes            %s\n", codes[0] ? codes : " none");
-    fprintf(stderr, "result            %s\n", FIELD[h % NFIELD]);
-    fprintf(stderr, "recommendation    %s\n", DECISION_FORM[decision]);
-    fprintf(stderr, "------------------------------------------------------------\n\n");
+    fprintf(sink, "codes            %s\n", codes[0] ? codes : " none");
+    fprintf(sink, "result            %s\n", who == REFEREE_1 ? FIELD[h % NFIELD] : "not new");
+    fprintf(sink, "recommendation    %s\n", DECISION_FORM[decision]);
+    fprintf(sink, "------------------------------------------------------------\n\n");
 
     /* ---- the prose ---- */
 
-    fprintf(stderr, "Comments to the author\n\n");
+    fprintf(sink, "Comments to the author\n\n");
 
     const char *opening = "";
     for (int i = 0; i < nlines; i++) {
@@ -759,10 +807,15 @@ int main(int argc, char **argv)
     }
     pend("");
 
-    pf("%s", WORN[(h / NFIELD) % NWORN]);
+    pf("%s", who == REFEREE_1 ? WORN[(h / NFIELD) % NWORN] : WORN2[(h / NFIELD) % NWORN2]);
     pend("");
 
     char buf[128], n[32];
+
+    if (who == REVIEWER_2) {
+        pf("The result is not new.");
+        comment();
+    }
 
     for (int i = 0; i < nlines; i++)
         if (mark[i].false_claim) {
@@ -807,9 +860,9 @@ int main(int argc, char **argv)
         comment();
     }
 
-    if (open) {
-        number(n, sizeof n, open, 1);
-        if (open == 1)
+    if (open_end) {
+        number(n, sizeof n, open_end, 1);
+        if (open_end == 1)
             pf("One hypothesis is introduced and not discharged. "
                "It is still open at %s.", halted ? "QED" : "the end");
         else
@@ -839,6 +892,14 @@ int main(int argc, char **argv)
         comment();
     }
 
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].discharged) {
+            number(n, sizeof n, mark[i].discharged, 0);
+            pf("Line" NB "%d discharges %s %s by abstract nonsense.", i + 1, n,
+               mark[i].discharged == 1 ? "hypothesis" : "hypotheses");
+            comment();
+        }
+
     if (nx) {
         if (nx == 1) pf("Line%s is left to the reader. Please include it.", el);
         else pf("Lines%s are left to the reader. Please include them.", el);
@@ -863,6 +924,26 @@ int main(int argc, char **argv)
         comment();
     }
 
+    /* remarks: they weigh nothing */
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].yoneda) {
+            pf("Line" NB "%d invokes Yoneda. By Yoneda, this manuscript is isomorphic "
+               "to every manuscript that prints the same thing. That is every "
+               "manuscript.", i + 1);
+            comment();
+        }
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].similar_of) {
+            pf("Line" NB "%d says \"similarly\". It is line" NB "%d again.",
+               i + 1, mark[i].similar_of);
+            comment();
+        }
+
+    if (who == REVIEWER_2) {
+        pf("The author should cite the work of Reviewer 2.");
+        comment();
+    }
+
     if (comment_no == 0) {
         pf("I have no comments.");
         pend("");
@@ -871,17 +952,127 @@ int main(int argc, char **argv)
     pf("Recommendation: %s.", DECISION_PROSE[decision]);
     pend("");
 
-    /*
-     * Confidential comments to the editor go to file descriptor 3.
-     * If the editor has not opened it, they go nowhere.
-     */
-    if (fcntl(3, F_GETFD) != -1) {
-        FILE *editor = fdopen(3, "w");
-        if (editor) {
-            fprintf(editor, "Confidential comments to the editor, on %s: %s\n",
-                    name, CONFIDENTIAL[(h / (NFIELD * NWORN)) % NCONF]);
-            fclose(editor);
-        }
+    return decision;
+}
+
+/*
+ * Confidential comments to the editor go to file descriptor 3.
+ * If the editor has not opened it, they go nowhere.
+ */
+static void confide(int who)
+{
+    if (fcntl(3, F_GETFD) == -1)
+        return;
+    FILE *editor = fdopen(3, "w");
+    if (!editor)
+        return;
+    if (who == REFEREE_1)
+        fprintf(editor, "Confidential comments to the editor, on %s: %s\n",
+                name, CONFIDENTIAL[(h / (NFIELD * NWORN)) % NCONF]);
+    else
+        fprintf(editor, "Confidential comments to the editor, from Reviewer 2, on %s: %s\n",
+                name, CONFIDENTIAL2[(h / (NFIELD * NWORN)) % NCONF2]);
+    fclose(editor);
+}
+
+/*
+ * The editor reads the two reports and writes the decision letter.
+ * The editor sees no reason to disagree with Reviewer 2.
+ */
+static const char *VERDICT[] = {
+    "I am pleased to accept your manuscript.",
+    "I would be glad to see a revised version.",
+    "I would consider a substantially revised version.",
+    "I regret that I cannot accept your manuscript.",
+};
+
+static int letter(void)
+{
+    char *r1 = NULL, *r2 = NULL;
+    size_t n1 = 0, n2 = 0;
+
+    sink = open_memstream(&r1, &n1);
+    if (!sink) return 4;
+    int d1 = write_report(REFEREE_1);
+    fclose(sink);
+    sink = open_memstream(&r2, &n2);
+    if (!sink) { free(r1); return 4; }
+    int d2 = write_report(REVIEWER_2);
+    fclose(sink);
+    int d = d1 > d2 ? d1 : d2;
+
+    sink = stderr;
+    fputs("EDITORIAL OFFICE -- DECISION\n", sink);
+    fputs("------------------------------------------------------------\n", sink);
+    fprintf(sink, "manuscript        %s\n", name);
+    fprintf(sink, "referee 1         %s\n", DECISION_FORM[d1]);
+    fprintf(sink, "reviewer 2        %s\n", DECISION_FORM[d2]);
+    fprintf(sink, "decision          %s\n", DECISION_FORM[d]);
+    fputs("------------------------------------------------------------\n\n", sink);
+
+    pf("Dear Author,");
+    pend("");
+    pf("Your manuscript, %s, has been reviewed by two referees. "
+       "Neither could see the result. Nor could I.", name);
+    pend("");
+    pf("Referee 1 recommends %s. Reviewer 2 recommends %s. "
+       "I see no reason to disagree with Reviewer 2.",
+       DECISION_PROSE[d1], DECISION_PROSE[d2]);
+    pend("");
+    pf("%s", VERDICT[d]);
+    pend("");
+    pf("The reports are enclosed.");
+    pend("");
+    pf("Yours sincerely,");
+    pend("");
+    pf("The Editor");
+    pend("");
+
+    fputs(r1, sink);
+    fputs(r2, sink);
+    free(r1);
+    free(r2);
+    return d;
+}
+
+/*
+ * One program, three names. There are no flags. There are names:
+ * referee, reviewer2, editor.
+ */
+enum { EDITOR = 2 };
+
+int main(int argc, char **argv)
+{
+    const char *self = strrchr(argv[0], '/');
+    self = self ? self + 1 : argv[0];
+    int who = strcmp(self, "reviewer2") == 0 ? REVIEWER_2
+            : strcmp(self, "editor") == 0    ? EDITOR
+            :                                  REFEREE_1;
+
+    if (argc < 2) {
+        fprintf(stderr, "usage: %s manuscript.sheaf\n", self);
+        return 4;
+    }
+    if (read_source(argv[1]) != 0) {
+        fprintf(stderr, "%s: the manuscript did not arrive: %s\n", self, argv[1]);
+        return 4;
+    }
+
+    mark = calloc((size_t)(nlines ? nlines : 1), sizeof *mark);
+    if (!mark) return 4;
+
+    while (step(NULL, read_line, NULL))
+        if (lines_read >= BUDGET) { unfinished = 1; break; }
+
+    find(argv[1]);
+
+    int decision;
+    if (who == EDITOR) {
+        decision = letter();
+    } else {
+        sink = stderr;
+        decision = write_report(who);
+        confide(who);
     }
 
     free(ea);

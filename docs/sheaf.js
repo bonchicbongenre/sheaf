@@ -19,7 +19,8 @@ var OP = {
   PUSH: 0, PUSH0: 1, POP: 2, DUP: 3, SWAP: 4, ADD: 5, SUB: 6, MUL: 7, DIV: 8,
   LOAD: 9, STORE: 10, EMIT: 11, PRINT: 12, JMP: 13, JZ: 14, JNZ: 15,
   HALT: 16, NOP: 17, CALL: 18, RET: 19, LOOP: 20, REPEAT: 21,
-  COVER: 22, TRANS: 23, GLUE: 24, READ: 25
+  COVER: 22, TRANS: 23, GLUE: 24, READ: 25,
+  YONEDA: 26, NONSENSE: 27, SIMILAR: 28
 };
 
 /* the phrase table, in the C order: the order breaks ties */
@@ -36,6 +37,7 @@ var PH = [
   ['by induction', OP.LOOP, 0], ['this completes the induction', OP.REPEAT, 0],
   ['cover', OP.COVER, 0], ['the transition', OP.TRANS, 0], ['by gluing', OP.GLUE, 0],
   ['left to the reader', OP.READ, 0],
+  ['by yoneda', OP.YONEDA, 0], ['by abstract nonsense', OP.NONSENSE, 0], ['similarly', OP.SIMILAR, 0],
   ['WLOG', OP.POP, 0], ['wlog', OP.POP, 0], ['iff', OP.JZ, 1], ['cf.', OP.JMP, 1],
   ['cf ', OP.JMP, 1], ['op.', OP.SWAP, 0], ['resp.', OP.DUP, 0], ['TFAE', OP.NOP, 0],
   ['NTS', OP.NOP, 0], ['WTS', OP.NOP, 0], ['RTP', OP.NOP, 0], ['s.t.', OP.NOP, 0]
@@ -107,6 +109,7 @@ function Machine(source, reader) {
   m.ovA = []; m.ovB = []; m.ovC = [];
   m.reader = reader;     /* a string the reader gives, or null */
   m.readAt = 0;
+  m.lastLine = NOWHERE;  /* what "Similarly." performs again */
   m.index();
 }
 
@@ -269,26 +272,45 @@ function cechH1(n, m, a, b, c) {
 
 /* ---- one step ---- */
 
+Machine.prototype.fresh = function (line) {
+  var m = this;
+  return {
+    line: line, text: m.lines[line], p: null, at: -1, degree: -1,
+    spBefore: m.stk.length,
+    topBefore: m.stk.length > 0 ? m.stk[m.stk.length - 1] : 0n,
+    underflows: 0, gave: 0, given: 0n, next: 0, deferred: 0,
+    target: NOWHERE, unresolved: 0, cite: '', glue: NOWHERE, b1: 0,
+    discharged: 0, repeat: null, repeatLine: NOWHERE, repeatDegree: -1
+  };
+};
+
 Machine.prototype.step = function (derived, obs) {
   var m = this;
   if (m.pc < 0 || m.pc >= m.nlines) return false;
 
-  var ln = m.lines[m.pc];
-  var e = {
-    line: m.pc, text: ln, p: null, at: -1, degree: -1,
-    spBefore: m.stk.length,
-    topBefore: m.stk.length > 0 ? m.stk[m.stk.length - 1] : 0n,
-    underflows: 0, gave: 0, given: 0n, next: 0, deferred: 0,
-    target: NOWHERE, unresolved: 0, cite: '', glue: NOWHERE, b1: 0
-  };
-  var u0 = m.underflow, running = true, degree;
+  var e = m.fresh(m.pc), u0 = m.underflow, run = { running: true };
 
   m.pc++;
 
   if (m.skipTo[e.line] !== NOWHERE) {
     m.pc = m.skipTo[e.line];
     e.deferred = 1;
-  } else if ((degree = tryDerived(ln)) >= 0) {
+  } else {
+    m.perform(e.line, e, derived, run);
+    if (e.degree >= 0 || (e.p && e.p.op !== OP.SIMILAR)) m.lastLine = e.line;
+  }
+
+  e.underflows = m.underflow - u0;
+  e.next = m.pc;
+  if (obs) obs(e);
+  return run.running && m.pc >= 0 && m.pc < m.nlines;
+};
+
+/* perform one line: a derived functor, or the leftmost phrase */
+Machine.prototype.perform = function (line, e, derived, run) {
+  var m = this, ln = m.lines[line], degree;
+
+  if ((degree = tryDerived(ln)) >= 0) {
     var v = m.pop();
     e.degree = degree; e.gave = 1; e.given = v;
     if (degree >= 1 && derived) derived.push('H^' + degree + '(X,F) = ' + v + '\n');
@@ -324,7 +346,7 @@ Machine.prototype.step = function (derived, obs) {
         e.target = m.destination(ln, rest, e);
         if (m.pop() && e.target !== NOWHERE) m.pc = e.target;
         break;
-      case OP.HALT: running = false; break;
+      case OP.HALT: run.running = false; break;
       case OP.NOP: break;
       case OP.CALL: {
         var k = kindNamed(p.text, 3), id = readId(ln, rest);
@@ -337,7 +359,7 @@ Machine.prototype.step = function (derived, obs) {
       case OP.RET: if (m.rstk.length > 0) m.pc = m.rstk.pop(); break;
       case OP.LOOP: break;
       case OP.REPEAT:
-        if (m.loopHead[e.line] !== NOWHERE && m.peek()) m.pc = m.loopHead[e.line] + 1;
+        if (m.loopHead[line] !== NOWHERE && m.peek()) m.pc = m.loopHead[line] + 1;
         break;
       case OP.COVER: {
         var s = 0, o;
@@ -372,14 +394,20 @@ Machine.prototype.step = function (derived, obs) {
         }
         break;
       }
+      case OP.YONEDA: break;
+      case OP.NONSENSE: e.discharged = m.stk.length; m.stk = []; break;
+      case OP.SIMILAR:
+        if (m.lastLine !== NOWHERE) {
+          var again = m.fresh(m.lastLine);
+          m.perform(m.lastLine, again, derived, run);
+          e.repeat = again.p; e.repeatLine = m.lastLine; e.repeatDegree = again.degree;
+          e.gave = again.gave; e.given = again.given;
+          e.glue = again.glue; e.b1 = again.b1; e.discharged = again.discharged;
+        }
+        break;
       }
     }
   }
-
-  e.underflows = m.underflow - u0;
-  e.next = m.pc;
-  if (obs) obs(e);
-  return running && m.pc >= 0 && m.pc < m.nlines;
 };
 
 /*
@@ -469,13 +497,31 @@ function fnv(s) {
   return h >>> 0;
 }
 
-function referee(source, name) {
+var REFEREE_1 = 0, REVIEWER_2 = 1;
+var WORN2 = [
+  'I could not see the result. I have seen results like it.',
+  'I did not see the result, and I do not need to.',
+  'The result was not visible to me. Nor, I suspect, to the author.'
+];
+var CONFIDENTIAL2 = [
+  'I have not read the paper, but I know the area.',
+  'I would reject this even if it were correct.',
+  'This is my third review of this paper, at a third journal.'
+];
+var VERDICT = [
+  'I am pleased to accept your manuscript.',
+  'I would be glad to see a revised version.',
+  'I would consider a substantially revised version.',
+  'I regret that I cannot accept your manuscript.'
+];
+
+function review(source, name) {
   var M = new Machine(source, null);
   var nl = M.nlines, mark = [], i;
   for (i = 0; i < (nl || 1); i++)
     mark.push({ seen: 0, prose: 0, underflow: 0, code: '', falseClaim: 0, op: 0, phrase: '',
                 target: 0, sent: 0, word: '', claim: '', denial: '', cite: '',
-                dangling: 0, danglingOp: 0, called: 0 });
+                dangling: 0, danglingOp: 0, called: 0, yoneda: 0, discharged: 0, similarOf: 0 });
 
   var linesRead = 0, steps = 0, emptySteps = 0, observes = 0, publishes = 0, leaks = 0;
   var claimsChecked = 0, claimsFalse = 0, haveSection = 0, haveObstruction = 0;
@@ -545,12 +591,19 @@ function referee(source, name) {
       else if (cistrstr(e.text, 'publish') >= 0) publishes++;
       else observes++;
     } else if (e.p) {
-      var p = e.p;
+      var p = e.p, q = e.repeat || p;
       steps++;
-      if (p.op === OP.NOP) emptySteps++;
-      if (p.op === OP.EMIT) observes++;
-      if (p.op === OP.PRINT) publishes++;
-      if (p.op === OP.HALT) halted = 1;
+      if (e.repeatDegree >= 1) leaks++;
+      else if (e.repeatDegree === 0) {
+        if (cistrstr(M.lines[e.repeatLine], 'publish') >= 0) publishes++; else observes++;
+      }
+      if (q.op === OP.NOP) emptySteps++;
+      if (q.op === OP.EMIT) observes++;
+      if (q.op === OP.PRINT) publishes++;
+      if (q.op === OP.HALT) halted = 1;
+      if (p.op === OP.YONEDA) mk.yoneda = 1;
+      if (e.discharged > mk.discharged) mk.discharged = e.discharged;
+      if (p.op === OP.SIMILAR && e.repeatLine !== NOWHERE && !mk.similarOf) mk.similarOf = e.repeatLine + 1;
 
       if (isInstruction(e.text, e.at, p)) {
         if (first) {
@@ -578,7 +631,8 @@ function referee(source, name) {
     if (e.glue === 0) leaks++;
     if (e.underflows) mk.underflow = 1;
     if (e.gave) {
-      if (e.degree >= 1) { haveObstruction = 1; obstruction = e.given; }
+      var deg = e.degree >= 0 ? e.degree : e.repeatDegree;
+      if (deg >= 1) { haveObstruction = 1; obstruction = e.given; }
       else { haveSection = 1; section = e.given; }
     }
   }
@@ -674,13 +728,20 @@ function referee(source, name) {
   }
   for (i = 0; i < nv; i++) if (!color[i]) search(i);
 
-  var decision = ACCEPT;
-  if (anyProseMinor || N.n || W.n || C.n || E.n || unread || pieces > 1) decision = MINOR;
-  if (unfinished || anyProseMajor || anyDangling || cycles.length || U.n || open) decision = MAJOR;
-  if (claimsFalse) decision = REJECT;
+  var anyNonsense = 0;
+  for (i = 0; i < nl; i++) if (mark[i].discharged) anyNonsense = 1;
+
+  var decision1 = ACCEPT;
+  if (anyProseMinor || N.n || W.n || C.n || E.n || unread || pieces > 1 || anyNonsense) decision1 = MINOR;
+  if (unfinished || anyProseMajor || anyDangling || cycles.length || U.n || open) decision1 = MAJOR;
+  if (claimsFalse) decision1 = REJECT;
 
   var base = name.slice(name.lastIndexOf('/') + 1);
   var h = fnv(base);
+
+  /* the referee and Reviewer 2 write from the same reading */
+  function write(who) {
+  var decision = who === REFEREE_1 ? decision1 : Math.min(decision1 + 1, REJECT);
 
   /* ---- the form ---- */
 
@@ -694,6 +755,7 @@ function referee(source, name) {
   if (open) codes += ' O';
   if (unread) codes += ' L';
   if (pieces > 1) codes += ' S';
+  if (anyNonsense) codes += ' A';
   if (E.n) codes += ' E';
   if (N.n) codes += ' N';
   if (W.n) codes += ' W';
@@ -701,7 +763,8 @@ function referee(source, name) {
 
   var out = [];
   var dash = '------------------------------------------------------------\n';
-  out.push('EDITORIAL OFFICE -- REFEREE REPORT\n', dash);
+  out.push(who === REFEREE_1 ? 'EDITORIAL OFFICE -- REFEREE REPORT\n'
+                             : 'EDITORIAL OFFICE -- REPORT OF REVIEWER 2\n', dash);
   out.push('manuscript        ' + base + '\n');
   out.push('lines             ' + nl + '\n');
   if (unfinished) out.push('steps             ' + steps + ' (reading stopped)\n');
@@ -713,7 +776,7 @@ function referee(source, name) {
   out.push('citation graph    V ' + nv + ', E ' + ne + ', H^0 ' + pieces + ', H^1 ' + rank1 +
            ', chi ' + (nv - ne) + '\n');
   out.push('codes            ' + (codes || ' none') + '\n');
-  out.push('result            ' + FIELD[h % FIELD.length] + '\n');
+  out.push('result            ' + (who === REFEREE_1 ? FIELD[h % FIELD.length] : 'not new') + '\n');
   out.push('recommendation    ' + DECISION_FORM[decision] + '\n');
   out.push(dash + '\n');
 
@@ -766,8 +829,11 @@ function referee(source, name) {
   }
   pend('');
 
-  pf(WORN[Math.floor(h / FIELD.length) % WORN.length]);
+  pf(who === REFEREE_1 ? WORN[Math.floor(h / FIELD.length) % WORN.length]
+                       : WORN2[Math.floor(h / FIELD.length) % WORN2.length]);
   pend('');
+
+  if (who === REVIEWER_2) { pf('The result is not new.'); comment(); }
 
   function performs(mk) {
     switch (mk.op) {
@@ -796,6 +862,9 @@ function referee(source, name) {
     case OP.TRANS: return 'sets a transition';
     case OP.GLUE: return 'glues';
     case OP.READ: return 'asks the reader';
+    case OP.YONEDA: return 'invokes Yoneda';
+    case OP.NONSENSE: return 'discharges every hypothesis';
+    case OP.SIMILAR: return 'does the last thing again';
     default: return 'says ' + mk.phrase;
     }
   }
@@ -858,6 +927,13 @@ function referee(source, name) {
     comment();
   }
 
+  for (i = 0; i < nl; i++)
+    if (mark[i].discharged) {
+      pf('Line' + NB + (i + 1) + ' discharges ' + number(mark[i].discharged, false) + ' ' +
+         (mark[i].discharged === 1 ? 'hypothesis' : 'hypotheses') + ' by abstract nonsense.');
+      comment();
+    }
+
   if (E.n) {
     pf(E.n === 1 ? 'Line' + E.text + ' is left to the reader. Please include it.'
                  : 'Lines' + E.text + ' are left to the reader. Please include them.');
@@ -879,16 +955,75 @@ function referee(source, name) {
     comment();
   }
 
+  /* remarks: they weigh nothing */
+  for (i = 0; i < nl; i++)
+    if (mark[i].yoneda) {
+      pf('Line' + NB + (i + 1) + ' invokes Yoneda. By Yoneda, this manuscript is isomorphic ' +
+         'to every manuscript that prints the same thing. That is every manuscript.');
+      comment();
+    }
+  for (i = 0; i < nl; i++)
+    if (mark[i].similarOf) {
+      pf('Line' + NB + (i + 1) + ' says "similarly". It is line' + NB + mark[i].similarOf + ' again.');
+      comment();
+    }
+
+  if (who === REVIEWER_2) { pf('The author should cite the work of Reviewer 2.'); comment(); }
+
   if (commentNo === 0) { pf('I have no comments.'); pend(''); }
 
   pf('Recommendation: ' + DECISION_PROSE[decision] + '.');
   pend('');
 
+  var c = Math.floor(h / (FIELD.length * WORN.length));
   return {
     report: out.join(''), code: decision, recommendation: DECISION_FORM[decision],
-    confidential: 'Confidential comments to the editor, on ' + base + ': ' +
-      CONFIDENTIAL[Math.floor(h / (FIELD.length * WORN.length)) % CONFIDENTIAL.length]
+    confidential: who === REFEREE_1
+      ? 'Confidential comments to the editor, on ' + base + ': ' + CONFIDENTIAL[c % CONFIDENTIAL.length]
+      : 'Confidential comments to the editor, from Reviewer 2, on ' + base + ': ' +
+        CONFIDENTIAL2[c % CONFIDENTIAL2.length]
   };
+  }
+
+  return { write: write, base: base };
+}
+
+function referee(source, name) { return review(source, name).write(REFEREE_1); }
+function reviewer2(source, name) { return review(source, name).write(REVIEWER_2); }
+
+/* the editor sees no reason to disagree with Reviewer 2 */
+function editor(source, name) {
+  var rv = review(source, name), r1 = rv.write(REFEREE_1), r2 = rv.write(REVIEWER_2);
+  var d = Math.max(r1.code, r2.code), out = [], para = '';
+  function pf(s) { para += s; }
+  function pend() {
+    var col = 0, first = true, txt = '';
+    para.split(' ').forEach(function (w) {
+      if (!w) return;
+      if (!first && col + 1 + w.length > WIDTH) { txt += '\n'; col = 0; }
+      else if (!first) { txt += ' '; col++; }
+      txt += w; col += w.length; first = false;
+    });
+    out.push(txt + '\n\n');
+    para = '';
+  }
+  var dash = '------------------------------------------------------------\n';
+  out.push('EDITORIAL OFFICE -- DECISION\n', dash,
+           'manuscript        ' + rv.base + '\n',
+           'referee 1         ' + DECISION_FORM[r1.code] + '\n',
+           'reviewer 2        ' + DECISION_FORM[r2.code] + '\n',
+           'decision          ' + DECISION_FORM[d] + '\n', dash + '\n');
+  pf('Dear Author,'); pend();
+  pf('Your manuscript, ' + rv.base + ', has been reviewed by two referees. ' +
+     'Neither could see the result. Nor could I.'); pend();
+  pf('Referee 1 recommends ' + DECISION_PROSE[r1.code] + '. Reviewer 2 recommends ' +
+     DECISION_PROSE[r2.code] + '. I see no reason to disagree with Reviewer 2.'); pend();
+  pf(VERDICT[d]); pend();
+  pf('The reports are enclosed.'); pend();
+  pf('Yours sincerely,'); pend();
+  pf('The Editor'); pend();
+  return { report: out.join('') + r1.report + r2.report, code: d, recommendation: DECISION_FORM[d],
+           confidential: r1.confidential + '\n' + r2.confidential };
 }
 
 /*
@@ -930,7 +1065,7 @@ function lint(text) {
   });
 }
 
-var api = { run: run, referee: referee, lint: lint };
+var api = { run: run, referee: referee, reviewer2: reviewer2, editor: editor, lint: lint };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.sheaf = api;
 

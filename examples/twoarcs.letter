@@ -1,0 +1,76 @@
+EDITORIAL OFFICE -- DECISION
+------------------------------------------------------------
+manuscript        twoarcs.sheaf
+referee 1         ACCEPT
+reviewer 2        MINOR REVISION
+decision          MINOR REVISION
+------------------------------------------------------------
+
+Dear Author,
+
+Your manuscript, twoarcs.sheaf, has been reviewed by two referees.
+Neither could see the result. Nor could I.
+
+Referee 1 recommends accept. Reviewer 2 recommends minor revision.
+I see no reason to disagree with Reviewer 2.
+
+I would be glad to see a revised version.
+
+The reports are enclosed.
+
+Yours sincerely,
+
+The Editor
+
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        twoarcs.sheaf
+lines             32
+steps             10
+hypotheses open   0
+claims            2 checked, 0 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             none
+result            pending
+recommendation    ACCEPT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "Theorem 1. With two arcs, the logarithm
+has a global branch on the circle." It takes 10 steps and leaks
+one obstruction.
+
+The result was not available to me. I have read the proof closely.
+
+I have no comments.
+
+Recommendation: accept.
+
+EDITORIAL OFFICE -- REPORT OF REVIEWER 2
+------------------------------------------------------------
+manuscript        twoarcs.sheaf
+lines             32
+steps             10
+hypotheses open   0
+claims            2 checked, 0 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             none
+result            not new
+recommendation    MINOR REVISION
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "Theorem 1. With two arcs, the logarithm
+has a global branch on the circle." It takes 10 steps and leaks
+one obstruction.
+
+I could not see the result. I have seen results like it.
+
+1. The result is not new.
+
+2. The author should cite the work of Reviewer 2.
+
+Recommendation: minor revision.
+

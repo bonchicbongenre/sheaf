@@ -6,20 +6,25 @@ SHEAFC  = sheafc
 EXAMPLES = $(wildcard examples/*.sheaf)
 SUBMISSIONS = $(wildcard submissions/*.sheaf)
 
-.PHONY: all clean test vacuous derived reports compiled rel quines fixpoint site site-test
+LETTERS = $(wildcard examples/*.letter)
+
+.PHONY: all clean test vacuous derived reports letters compiled rel quines fixpoint site site-test
 
 all: $(PROG) $(REFEREE) $(SHEAFC)
 
 $(PROG): sheaf.c stalk.h
 	$(CC) $(CFLAGS) -o $@ $<
 
+# One program, three names: referee, reviewer2, editor.
 $(REFEREE): referee.c stalk.h
 	$(CC) $(CFLAGS) -o $@ $<
+	ln -sf referee reviewer2
+	ln -sf referee editor
 
 $(SHEAFC): sheafc.c stalk.h
 	$(CC) $(CFLAGS) -o $@ $<
 
-test: vacuous derived reports compiled rel quines
+test: vacuous derived reports letters compiled rel quines
 
 # The vacuous test. Every program's stdout must be empty. Every
 # program's stdout is empty. This test has never failed and cannot
@@ -91,6 +96,29 @@ reports: $(REFEREE)
 			pass=$$((pass + 1)); \
 		else \
 			printf '  %-16s FAIL  (exit %s, want %s)\n' "$$name:" $$code $$wcode; \
+			fail=$$((fail + 1)); \
+		fi; \
+	done; \
+	printf '\n%d passed, %d failed\n' $$pass $$fail; \
+	[ $$fail -eq 0 ]
+
+# The letters. The editor's decision letter, with both reports
+# enclosed, must equal NAME.letter, and the exit code the decision.
+letters: $(REFEREE)
+	@printf '\nEditor (letters):\n'
+	@pass=0; fail=0; \
+	for g in $(LETTERS); do \
+		name=$$(basename $$g .letter); \
+		got=$$(./editor examples/$$name.sheaf 3>&- 2>&1 >/dev/null); code=$$?; \
+		case "$$(sed -n 's/^decision *//p' $$g)" in \
+			ACCEPT) wcode=0 ;; "MINOR REVISION") wcode=1 ;; \
+			"MAJOR REVISION") wcode=2 ;; REJECT) wcode=3 ;; *) wcode=none ;; \
+		esac; \
+		if [ "$$got" = "$$(cat $$g)" ] && [ "$$code" = "$$wcode" ]; then \
+			printf '  %-16s PASS  (%s)\n' "$$name:" "$$(sed -n 's/^decision *//p' $$g)"; \
+			pass=$$((pass + 1)); \
+		else \
+			printf '  %-16s FAIL\n' "$$name:"; \
 			fail=$$((fail + 1)); \
 		fi; \
 	done; \
@@ -222,4 +250,4 @@ site-test:
 	node tools/site-test.js
 
 clean:
-	rm -f $(PROG) $(REFEREE) $(SHEAFC) fixpoint/*.report
+	rm -f $(PROG) $(REFEREE) reviewer2 editor $(SHEAFC) fixpoint/*.report

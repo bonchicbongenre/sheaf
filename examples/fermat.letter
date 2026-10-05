@@ -1,0 +1,90 @@
+EDITORIAL OFFICE -- DECISION
+------------------------------------------------------------
+manuscript        fermat.sheaf
+referee 1         REJECT
+reviewer 2        REJECT
+decision          REJECT
+------------------------------------------------------------
+
+Dear Author,
+
+Your manuscript, fermat.sheaf, has been reviewed by two referees.
+Neither could see the result. Nor could I.
+
+Referee 1 recommends reject. Reviewer 2 recommends reject. I see
+no reason to disagree with Reviewer 2.
+
+I regret that I cannot accept your manuscript.
+
+The reports are enclosed.
+
+Yours sincerely,
+
+The Editor
+
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        fermat.sheaf
+lines             30
+steps             20 (2 of them empty)
+hypotheses open   3
+claims            1 checked, 1 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             F O W C
+result            see attached
+recommendation    REJECT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "It is well known that for n > 2, no three
+positive integers". It takes 20 steps and publishes once.
+
+The result did not reach me. I have checked what I could.
+
+1. Line 28 says this is zero. It is not zero.
+
+2. Three hypotheses are introduced and not discharged. They are
+   still open at QED.
+
+3. Line 1 is well known. Please give a reference.
+
+4. Line 28 says "clearly". Please show the step.
+
+Recommendation: reject.
+
+EDITORIAL OFFICE -- REPORT OF REVIEWER 2
+------------------------------------------------------------
+manuscript        fermat.sheaf
+lines             30
+steps             20 (2 of them empty)
+hypotheses open   3
+claims            1 checked, 1 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             F O W C
+result            not new
+recommendation    REJECT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "It is well known that for n > 2, no three
+positive integers". It takes 20 steps and publishes once.
+
+I did not see the result, and I do not need to.
+
+1. The result is not new.
+
+2. Line 28 says this is zero. It is not zero.
+
+3. Three hypotheses are introduced and not discharged. They are
+   still open at QED.
+
+4. Line 1 is well known. Please give a reference.
+
+5. Line 28 says "clearly". Please show the step.
+
+6. The author should cite the work of Reviewer 2.
+
+Recommendation: reject.
+

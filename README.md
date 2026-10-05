@@ -61,6 +61,9 @@ The computation is the proof.
 | `the transition` | | TRANS | The transition on two opens: an integer. |
 | `by gluing` | | GLUE | 1 if the transitions are a coboundary. Otherwise 0, and the class leaks. |
 | `left to the reader` | | READ | The reader gives a number. Or nothing. |
+| `by yoneda` | | NOP | An object is its observations. None are kept. |
+| `by abstract nonsense` | | CLEAR | Every open hypothesis, discharged at once. |
+| `similarly` | | AGAIN | The last line that performed, performed again. |
 | `QED` | | HALT | The proof is complete. |
 | `clearly` | | NOP | Obviously. Contributes nothing. |
 | `it is well known` | `TFAE` | NOP | Everyone knows this. Nobody cites it. |
@@ -87,13 +90,13 @@ Publish.
 QED.
 ```
 
-See `examples/` for 28 programs, including the seminar, the referee,
+See `examples/` for 31 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
 descent, Collatz from 27, the circle by three arcs and by two, a
-lemma used twice, the reader's square, a stopwatch, and the only
-quine. `submissions/` holds three more. They do not
+lemma used twice, the reader's square, a stopwatch, the only quine,
+Yoneda, abstract nonsense, and a second case that is not similar. `submissions/` holds three more. They do not
 terminate. Only the referee reads them.
 
 ## Derived Functors
@@ -163,6 +166,25 @@ number: `Vacuously Case 1.` A number counts lines from zero. `see 5`
 sends the reader to line 6.
 
 A dilemma is not a lemma. Headings begin the line.
+
+## Abstract Nonsense
+
+`By Yoneda.` An object is determined by its observations. Every
+observation of a sheaf program is discarded. By Yoneda, every sheaf
+program is isomorphic to every other. The referee says so, and it
+weighs nothing.
+
+`By abstract nonsense.` discharges every open hypothesis at once. The
+stack is cleared, and there is nothing left for the referee to find
+open. It finds the clearing instead: "Line 8 discharges two
+hypotheses by abstract nonsense."
+
+Abstract nonsense is the least nonsense there is.
+
+`Similarly.` performs the last line that performed, again. It is
+rarely what was meant. "Similarly, the second case." after a
+`Tensor.` multiplies by a hypothesis that was never introduced. The
+referee: "It is line 7 again."
 
 ## Gluing
 
@@ -336,6 +358,7 @@ The codes:
 | O | Hypotheses are still open at QED. | major |
 | L | A lemma is never cited, so its proof was not read. | minor |
 | S | The citations fall into pieces. The paper may be several papers. | minor |
+| A | Hypotheses are discharged by abstract nonsense. | minor |
 | E | It is left to the reader. Please include it. | minor |
 | N | `NTS`, `WTS` or `RTP`. The need is stated. | minor |
 | W | It is well known. No reference is given. | minor |
@@ -353,12 +376,30 @@ editor has not opened it, they go nowhere.
 Confidential comments to the editor, on fermat.sheaf: This took me four minutes.
 ```
 
+The referee is one program with three names. Called `reviewer2`, it
+is Reviewer 2. It reads the same paper, from the same run, and is
+one level harsher. Its form says the result is "not new". Its first
+comment is "The result is not new." Its last is "The author should
+cite the work of Reviewer 2." It cannot see the result either. "I
+have seen results like it."
+
+Called `editor`, it writes the decision letter and encloses both
+reports:
+
+```
+Referee 1 recommends accept. Reviewer 2 recommends minor revision.
+I see no reason to disagree with Reviewer 2.
+```
+
+That is `examples/twoarcs.sheaf`, whose theorem is false. There are no
+flags. There are names.
+
 A claim is checked against the stack as the line is reached, or, if
 the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 28 examples, 13 are accepted, 7 need minor revision, 6 need
+Of the 31 examples, 14 are accepted, 8 need minor revision, 7 need
 major revision, and 2 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -474,20 +515,23 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 31 reviews, 19 reach a fixed point by the third round. The
+Of the 34 reviews, 21 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
-"I read 100000 lines and did not reach the end." There are 7 of
-them. All 19 recommend major revision.
+"I read 100000 lines and did not reach the end." There are 8 of
+them. All 21 recommend major revision.
 
-In 17 of the 19, the reader was sent back by the words the referee
+In 19 of the 21, the reader was sent back by the words the referee
 used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-The other 12 reviews do not come round in 16 rounds. Their referee
+The other 13 reviews do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
-reach me". Each report publishes. Each "publishes" publishes, and has
-to be reported. The report grows by 6 lines a round.
+reach me". Each report says the manuscript publishes, or observes.
+Each "publishes" publishes, each "observes" observes, and each has to
+be reported. Most reports grow by 6 lines a round. The review of
+`yoneda.sheaf` grows by 9: its remark says every manuscript "prints"
+the same thing, and "prints" contains NTS.
 
 ## Tests
 
@@ -495,7 +539,7 @@ to be reported. The report grows by 6 lines a round.
 make test
 ```
 
-There are six tests.
+There are seven tests.
 
 The vacuous test checks that every program's stdout is empty. Every
 program's stdout is empty. The test has never failed. It cannot fail.
@@ -510,6 +554,9 @@ The report test checks each manuscript's report against `NAME.report`,
 and the exit code against its recommendation. The rejections are
 kept. A rejected manuscript that is corrected will no longer be
 rejected, and the test will fail.
+
+The letters test checks the editor's letter, with both reports
+enclosed, against `NAME.letter`, where there is one.
 
 The compiled test folds each manuscript with sheafc, compiles the C,
 runs it, and checks that it leaks what the interpreter leaks. The
