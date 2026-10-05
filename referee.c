@@ -17,6 +17,9 @@
  *
  * the referee reads at most BUDGET lines. then it stops reading.
  *
+ * confidential comments to the editor go to file descriptor 3. the
+ * editor may not have opened it.
+ *
  * cc -std=c99 -Wall -Wextra -pedantic -o referee referee.c
  *
  * usage: referee manuscript.sheaf
@@ -25,6 +28,7 @@
  */
 
 #include <stdarg.h>
+#include <fcntl.h>
 #include "stalk.h"
 
 #define BUDGET  100000
@@ -61,8 +65,20 @@ static const char *WORN[] = {
     "I read the proof without its result. My comments follow.",
 };
 
+/* confidential comments to the editor, on file descriptor 3 */
+static const char *CONFIDENTIAL[] = {
+    "I am not an expert in this area.",
+    "I did not check the proofs. Nobody can.",
+    "The author seems competent.",
+    "I read this on a train.",
+    "Please do not send me this author's next paper.",
+    "I could not see the result. I do not think the author could either.",
+    "This took me four minutes.",
+};
+
 #define NFIELD (sizeof FIELD / sizeof FIELD[0])
 #define NWORN  (sizeof WORN / sizeof WORN[0])
+#define NCONF  (sizeof CONFIDENTIAL / sizeof CONFIDENTIAL[0])
 
 /* ---- what the referee marks, line by line ---- */
 
@@ -854,6 +870,19 @@ int main(int argc, char **argv)
 
     pf("Recommendation: %s.", DECISION_PROSE[decision]);
     pend("");
+
+    /*
+     * Confidential comments to the editor go to file descriptor 3.
+     * If the editor has not opened it, they go nowhere.
+     */
+    if (fcntl(3, F_GETFD) != -1) {
+        FILE *editor = fdopen(3, "w");
+        if (editor) {
+            fprintf(editor, "Confidential comments to the editor, on %s: %s\n",
+                    name, CONFIDENTIAL[(h / (NFIELD * NWORN)) % NCONF]);
+            fclose(editor);
+        }
+    }
 
     free(ea);
     free(eb);

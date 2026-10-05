@@ -281,6 +281,7 @@ static void index_source(void)
     static int open[MAX_LINES];
     int depth = 0;
 
+    nlabels = 0;
     for (int i = 0; i < nlines; i++) {
         skip_to[i] = NOWHERE;
         loop_head[i] = NOWHERE;

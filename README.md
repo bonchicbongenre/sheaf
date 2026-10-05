@@ -24,6 +24,7 @@ The correctness is unobservable.
 make
 ./sheaf examples/functorial.sheaf
 ./referee examples/fermat.sheaf
+./sheafc examples/les.sheaf
 ```
 
 ## Instructions
@@ -86,12 +87,13 @@ Publish.
 QED.
 ```
 
-See `examples/` for 22 programs, including the seminar, the referee,
+See `examples/` for 28 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
 descent, Collatz from 27, the circle by three arcs and by two, a
-lemma used twice, the reader's square, and a stopwatch. `submissions/` holds three more. They do not
+lemma used twice, the reader's square, a stopwatch, and the only
+quine. `submissions/` holds three more. They do not
 terminate. Only the referee reads them.
 
 ## Derived Functors
@@ -226,6 +228,55 @@ Please include it." `examples/square.sheaf` uses what the reader
 gives, so to the referee it uses hypotheses that were never
 introduced.
 
+## The REL
+
+`sheaf` with no manuscript is a REL. Read, eval, loop. There is no
+print. There is no prompt either. A prompt would be output.
+
+Type a proof. Each line is evaluated as it arrives. `QED.` ends it.
+In the REL the reader is the typist: `Left to the reader.` takes the
+next number typed.
+
+## The Compiler
+
+```
+./sheafc examples/les.sheaf > les.c
+```
+
+sheafc is an optimizing compiler. It evaluates the proof at compile
+time, all of it: constant folding, all the way down. Then it keeps
+what is observable. By the as-if rule (C11 5.1.2.3) a translation
+need preserve only observable behaviour, and stdout is empty, so
+nothing is kept.
+
+```
+int main(void)
+{
+    return 0;
+}
+```
+
+The obstructions are on stderr, which is observable. They are kept.
+
+A loop that does nothing observable may be assumed to terminate (C11
+6.8.5p6). sheafc assumes it. `submissions/seems.sheaf` does not
+terminate. Compiled, it does. So does circular reasoning.
+
+A proof that asks the reader cannot be folded. "The reader is not a
+constant."
+
+sheafc is the only part of sheaf with output. Its output is a program
+with none.
+
+## Quines
+
+A quine prints its own source. Every sheaf program prints nothing, so
+a sheaf program is a quine exactly when its source is nothing.
+`examples/quine.sheaf` is the empty file. It is the only quine. A file
+holding one newline prints nothing, and is not one.
+
+The referee accepts it. "The manuscript begins: ""."
+
 ## The Referee
 
 ```
@@ -294,12 +345,20 @@ A phrase is an instruction when it is a capitalized whole word at the
 start of a sentence. Anywhere else it is commentary. Commentary
 performs anyway.
 
+Confidential comments to the editor go to file descriptor 3. If the
+editor has not opened it, they go nowhere.
+
+```
+./referee examples/fermat.sheaf 3>&1 2>/dev/null
+Confidential comments to the editor, on fermat.sheaf: This took me four minutes.
+```
+
 A claim is checked against the stack as the line is reached, or, if
 the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 27 examples, 12 are accepted, 7 need minor revision, 6 need
+Of the 28 examples, 13 are accepted, 7 need minor revision, 6 need
 major revision, and 2 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -415,7 +474,7 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 30 reviews, 19 reach a fixed point by the third round. The
+Of the 31 reviews, 19 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 7 of
 them. All 19 recommend major revision.
@@ -425,7 +484,7 @@ used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-The other 11 reviews do not come round in 16 rounds. Their referee
+The other 12 reviews do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report publishes. Each "publishes" publishes, and has
 to be reported. The report grows by 6 lines a round.
@@ -436,7 +495,7 @@ to be reported. The report grows by 6 lines a round.
 make test
 ```
 
-There are three tests.
+There are six tests.
 
 The vacuous test checks that every program's stdout is empty. Every
 program's stdout is empty. The test has never failed. It cannot fail.
@@ -451,6 +510,36 @@ The report test checks each manuscript's report against `NAME.report`,
 and the exit code against its recommendation. The rejections are
 kept. A rejected manuscript that is corrected will no longer be
 rejected, and the test will fail.
+
+The compiled test folds each manuscript with sheafc, compiles the C,
+runs it, and checks that it leaks what the interpreter leaks. The
+manuscripts that do not terminate pass. Compiled, they terminate.
+
+The REL test types each manuscript into the REL and checks the same.
+
+The quine test checks that every quine is empty, and every empty file
+a quine.
+
+## The Site
+
+https://theresultisonthenext.page is `docs/`. It runs sheaf and the
+referee in the browser, from a port of the two C files. `make site`
+bundles the examples into the page. `make site-test` checks the port
+against every report and every derived file, byte for byte. Both need
+node.
+
+The desk marks the words that act as they are typed. A report can be
+resubmitted without changes, and the referee does not change its
+mind. A report can be sent to the referee, and the fixed point walked
+by hand. The confidential comments are in the console, and so is the
+obstruction: stderr is the console.
+
+The result is on the next page. The next pages are the Serre spectral
+sequence of S^7 -> S^15 -> S^8, one page per click: E_2, E_3, and so
+on. d_2 through d_7 are zero, and nothing happens for six pages. d_8
+kills two classes. E_9 is E_infinity, and the result is on that page:
+the cohomology of S^15. After that the sequence has degenerated, and
+the next page is the same page.
 
 ## Why "sheaf"
 

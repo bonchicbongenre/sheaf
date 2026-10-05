@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sheaf</title>
+<meta name="description" content="The result is on the next page.">
+<meta property="og:title" content="sheaf">
+<meta property="og:description" content="The local data is perfect. The stalks are correct. Gamma is not implemented.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://theresultisonthenext.page">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="sheaf">
+<meta name="twitter:description" content="The result is on the next page.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f0eb;
+  --surface: #fffcf8;
+  --border: #e0d8cf;
+  --border-light: #ece6de;
+  --text: #3a3530;
+  --text-soft: #8a8078;
+  --text-faint: #b5ada5;
+  --accent: #2a6e4e;
+  --accent-hover: #358a62;
+  --field-bg: #faf6f1;
+  --red: #c06050;
+  --label-accent: #7a6850;
+}
+
+[data-theme="dark"] {
+  --bg: #1a1816;
+  --surface: #242120;
+  --border: #3a3530;
+  --border-light: #2e2a28;
+  --text: #e0d8cf;
+  --text-soft: #8a8078;
+  --text-faint: #5a534a;
+  --accent: #4a9e72;
+  --accent-hover: #5db885;
+  --field-bg: #1e1c1a;
+  --red: #d08070;
+  --label-accent: #a09080;
+}
+
+body {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1.5rem;
+  line-height: 1.6;
+  font-size: 1.08rem;
+}
+
+body, .desk, .pane, pre, textarea, input, select, button, h1, .theme-toggle {
+  transition: background 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+}
+
+header, main, footer { width: 100%; max-width: 42rem; }
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1.5rem;
+}
+
+h1 { font-size: 1.9rem; font-weight: 400; color: var(--text-soft); letter-spacing: -0.01em; }
+
+h2 {
+  font-size: 1.15rem;
+  font-weight: 400;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--label-accent);
+  margin: 2.6rem 0 0.7rem;
+}
+
+p { margin-bottom: 0.9rem; }
+
+.lede { font-style: italic; color: var(--text-soft); margin-bottom: 1.6rem; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+code, pre, textarea, input, select, .backdrop {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+}
+
+.editor { position: relative; background: var(--surface); }
+.editor textarea, .backdrop {
+  padding: 1rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  letter-spacing: normal;
+  scrollbar-gutter: stable;
+}
+.backdrop {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+}
+.backdrop mark { color: transparent; border-radius: 2px; }
+mark.instruction { background: rgba(42, 110, 78, 0.13); }
+mark.friend { background: rgba(192, 96, 80, 0.30); }
+mark.derived { background: rgba(122, 104, 80, 0.22); }
+mark.heading { background: rgba(122, 104, 80, 0.13); }
+.legend { font-size: 0.88rem; color: var(--text-faint); margin: 0.2rem 0 0.9rem; }
+.legend mark { color: var(--text-soft); border-radius: 2px; padding: 0 0.15rem; }
+
+code { color: var(--label-accent); }
+
+.theme-toggle {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-family: inherit;
+  letter-spacing: 0.03em;
+}
+.theme-toggle:hover { color: var(--text-soft); }
+
+.desk {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1.4rem 0 0.6rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--field-bg);
+}
+
+.row label {
+  width: 9.5rem;
+  flex-shrink: 0;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  color: var(--label-accent);
+}
+
+.row select, .row input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  padding: 0.6rem 1rem;
+}
+
+textarea {
+  display: block;
+  position: relative;
+  width: 100%;
+  min-height: 19rem;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--field-bg);
+}
+
+button.go {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 0.55rem 1.4rem;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+button.go:hover { background: var(--accent-hover); }
+button.go.quiet { background: var(--border); color: var(--text); }
+button.go.quiet:hover { background: var(--border-light); }
+
+.panes { display: flex; }
+.pane { flex: 1; border-right: 1px solid var(--border-light); min-width: 0; }
+.pane:last-child { border-right: none; }
+.pane-label {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  padding: 0.4rem 1rem 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.pane pre { min-height: 4.5rem; padding: 0.4rem 1rem 0.9rem; white-space: pre-wrap; color: var(--red); }
+
+.status {
+  font-size: 0.92rem;
+  color: var(--text-soft);
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--border-light);
+  margin: 0;
+  min-height: 2.4rem;
+}
+
+pre.report {
+  padding: 1rem;
+  border-top: 1px solid var(--border-light);
+  background: var(--field-bg);
+  overflow-x: auto;
+  line-height: 1.45;
+}
+
+pre.sample {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  margin: 0.4rem 0 1rem;
+  overflow-x: auto;
+}
+
+table { border-collapse: collapse; width: 100%; margin: 0.4rem 0 1rem; font-size: 0.95rem; }
+td { padding: 0.25rem 0.6rem 0.25rem 0; vertical-align: top; border-bottom: 1px solid var(--border-light); }
+td:first-child { white-space: nowrap; }
+
+footer { margin-top: 3rem; text-align: center; }
+.tagline { font-size: 1.15rem; margin-bottom: 0.6rem; }
+.note { font-size: 0.92rem; color: var(--text-faint); }
+
+@media (max-width: 560px) {
+  body { padding: 2rem 1rem; }
+  .row label { width: 7rem; padding: 0.6rem; }
+  .panes { flex-direction: column; }
+  .pane { border-right: none; border-bottom: 1px solid var(--border-light); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>sheaf</h1>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">dark</button>
+</header>
+
+<main>
+
+<p class="lede">The local data is perfect. The stalks are correct. Gamma is not implemented.</p>
+
+<p>sheaf is a purely functional programming language. Haskell thinks it is functional. Haskell has IO. sheaf does not have IO. sheaf is functional.</p>
+
+<p>Its instructions are mathematical prose. <code>Suppose 6.</code> <code>Suppose 7.</code> <code>Tensor.</code> <code>Publish.</code> <code>QED.</code> The computation runs. The value is 42. Output would require the global sections functor, and the global sections functor is not implemented. Every sheaf program prints the same thing.</p>
+
+<section class="desk" aria-label="The desk">
+  <div class="row">
+    <label for="pick">Manuscript</label>
+    <select id="pick"></select>
+  </div>
+  <div class="editor">
+    <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+    <textarea id="src" spellcheck="false" aria-label="The manuscript"></textarea>
+  </div>
+  <div class="row">
+    <label for="reader">The reader gives</label>
+    <input id="reader" type="text" placeholder="nothing" autocomplete="off">
+  </div>
+  <div class="actions">
+    <button class="go" id="run">Run</button>
+    <button class="go quiet" id="submit">Submit to the referee</button>
+    <button class="go quiet" id="resubmit" hidden>Resubmit without changes</button>
+    <button class="go quiet" id="again" hidden>Referee the report</button>
+  </div>
+  <div class="panes">
+    <div class="pane"><div class="pane-label">stdout</div><pre id="stdout"></pre></div>
+    <div class="pane"><div class="pane-label">stderr</div><pre id="stderr"></pre></div>
+  </div>
+  <p class="status" id="status"></p>
+  <pre class="report" id="report" hidden></pre>
+</section>
+<p class="legend">Marked words act: <mark class="instruction">instructions</mark>, <mark class="heading">headings</mark>, <mark class="derived">derived functors</mark>, and <mark class="friend">words that act from inside a sentence</mark>.</p>
+
+<h2>Derived functors</h2>
+
+<p><code>R^i observe</code> computes the right derived functors of Gamma. R^0 is Gamma: not implemented. For i &gt;= 1 the obstruction leaks to stderr. The reason you cannot see the answer is itself observable. stderr is the derived category.</p>
+
+<h2>False friends</h2>
+
+<p>The English is live. A phrase performs wherever it appears, inside any word. "The proof seems correct." does not terminate: <code>see</code> sends the reader back to line 1, and line 1 leads back to it. "differ" contains <code>iff</code>. "published" publishes. "The nearby lemmas" cite a lemma that is not there. "We discover" declares a cover. Observation is safe. A dilemma is safe.</p>
+
+<h2>Proof technique</h2>
+
+<p>Headings name lines. <code>By Lemma 2.3,</code> cites it, and the reader comes back at <code>This proves the lemma.</code> Lemmas are lazy: a lemma is proved when it is cited, and not before. <code>By induction.</code> and <code>This completes the induction.</code> are the loop. Gauss put his slate on the teacher's desk and said "Ligget se": there it lies.</p>
+
+<h2>Gluing</h2>
+
+<p><code>Cover the circle by U1, U2 and U3.</code> The transitions on the overlaps are a Cech 1-cochain on the nerve, and <code>By gluing.</code> asks whether it is a coboundary. On the circle the branches of the logarithm do not glue, and the class leaks: <code>H^1(U,Z) = Z^1; the class is (1)</code>. With two arcs the nerve is one edge, everything glues, and the circle has no hole.</p>
+
+<h2>The reader</h2>
+
+<p><code>Left to the reader.</code> reads one number from the reader. sheaf has I. It does not have O. The reader knows the number. Nobody knows the square.</p>
+
+<h2>The referee</h2>
+
+<p>The referee is a second program. It reads the manuscript while the proof runs beside it, and writes a report. It checks the claims in the prose against the stack, and says whether they hold, never what holds. It finds commentary that performs, hypotheses never introduced or never discharged, citations to nothing, circular arguments, and things that are well known. It does not do exercises. Its confidential comments to the editor go to file descriptor 3, if the editor has opened it. Here, they go to the console.</p>
+
+<table>
+<tr><td>F</td><td>A claim is false.</td></tr>
+<tr><td>R</td><td>The referee did not reach the end.</td></tr>
+<tr><td>P</td><td>A phrase performs from inside a sentence.</td></tr>
+<tr><td>D</td><td>A citation names a heading that is not there.</td></tr>
+<tr><td>X</td><td>The argument is circular.</td></tr>
+<tr><td>U</td><td>A hypothesis is used that was never introduced.</td></tr>
+<tr><td>O</td><td>Hypotheses are still open at QED.</td></tr>
+<tr><td>L</td><td>A lemma is never cited, so its proof was not read.</td></tr>
+<tr><td>S</td><td>The paper may be several papers.</td></tr>
+<tr><td>E</td><td>It is left to the reader. Please include it.</td></tr>
+<tr><td>N, W, C</td><td>Need to show; well known; clearly.</td></tr>
+</table>
+
+<h2>The fixed point</h2>
+
+<p>A report is prose, so a report is a manuscript. Give the referee its own report, and the report on that, and so on. A review comes round when some report sends its reader back to line 1. Usually the referee did it, by saying it could not <em>see</em>: "see attached", "I could not see the result". From then on every report says "I read 100000 lines and did not reach the end." Otherwise every "publishes" in a report publishes, has to be reported, and the review grows forever.</p>
+
+<h2>The compiler</h2>
+
+<p><code>sheafc</code> evaluates the proof at compile time and keeps what is observable. By the as-if rule, every sheaf program compiles to <code>return 0</code>, plus its obstructions. A loop that does nothing observable may be assumed to terminate (C11 6.8.5p6), so a proof that never ends compiles to one that does. A proof that asks the reader is refused: the reader is not a constant. sheafc is the only part of sheaf with output. Its output is a program with none.</p>
+
+<h2>The REL</h2>
+
+<p><code>sheaf</code> with no manuscript is a REL: read, eval, loop. There is no print, and there is no prompt. A prompt would be output.</p>
+
+<h2>Quines</h2>
+
+<p>A quine prints its own source. Every sheaf program prints nothing, so the only quine is the empty file. The referee accepts it: "The manuscript begins: ""."</p>
+
+<h2>Side channels</h2>
+
+<p>sheaf satisfies noninterference. Nothing reaches stdout. The referee never says the result, but its form says how many steps the result took, and the step count of a countdown is the number counted down from. It also says whether a claim holds. Ask it about 41 and about 42.</p>
+
+<p>The README has all of it, and the interpreter is two files of C: <a href="https://github.com/bonchicbongenre/sheaf">github.com/bonchicbongenre/sheaf</a>.</p>
+
+</main>
+
+<footer>
+  <p class="tagline"><a href="next.html?p=2">The result is on the next page.</a></p>
+  <p class="note">Runs in your browser. Nothing is printed.</p>
+</footer>
+
+<script src="sheaf.js"></script>
+<script src="examples.js"></script>
+<script>
+(function () {
+var toggle = document.getElementById('themeToggle');
+function setTheme(dark, animate) {
+  if (animate === false) {
+    document.documentElement.style.transition = 'none';
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    document.documentElement.offsetHeight;
+    document.documentElement.style.transition = '';
+  } else {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  }
+  toggle.textContent = dark ? 'light' : 'dark';
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+}
+var saved = null;
+try { saved = localStorage.getItem('theme'); } catch (e) {}
+setTheme(saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches, false);
+toggle.addEventListener('click', function () {
+  setTheme(document.documentElement.getAttribute('data-theme') !== 'dark', true);
+});
+
+var pick = document.getElementById('pick');
+var src = document.getElementById('src');
+var reader = document.getElementById('reader');
+var out = document.getElementById('stdout');
+var err = document.getElementById('stderr');
+var said = document.getElementById('status');
+var report = document.getElementById('report');
+
+function option(value, text) {
+  var o = document.createElement('option');
+  o.value = value; o.textContent = text;
+  return o;
+}
+var groups = { examples: document.createElement('optgroup'), submissions: document.createElement('optgroup') };
+groups.examples.label = 'examples';
+groups.submissions.label = 'submissions (they do not terminate)';
+SHEAF_EXAMPLES.forEach(function (ex, i) { groups[ex.dir].appendChild(option(String(i), ex.name)); });
+pick.appendChild(option('new', 'a new manuscript'));
+pick.appendChild(groups.examples);
+pick.appendChild(groups.submissions);
+
+var backdrop = document.getElementById('backdrop');
+var resubmit = document.getElementById('resubmit');
+var again = document.getElementById('again');
+
+/* the words that act, marked behind the text as it is typed */
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function mark() {
+  var lines = src.value.split('\n'), marks = sheaf.lint(src.value), html = [];
+  for (var n = 0; n < lines.length; n++) {
+    var ln = lines[n], ms = marks[n].slice().sort(function (a, b) { return a.start - b.start; });
+    var at = 0, s = '';
+    ms.forEach(function (m) {
+      s += escapeHtml(ln.slice(at, m.start)) +
+           '<mark class="' + m.kind + '">' + escapeHtml(ln.slice(m.start, m.end)) + '</mark>';
+      at = m.end;
+    });
+    html.push(s + escapeHtml(ln.slice(at)));
+  }
+  backdrop.innerHTML = html.join('\n') + '\n ';
+  backdrop.scrollTop = src.scrollTop;
+}
+src.addEventListener('input', mark);
+src.addEventListener('scroll', function () { backdrop.scrollTop = src.scrollTop; });
+
+function manuscriptName() {
+  return pick.value === 'new' ? 'manuscript.sheaf' : SHEAF_EXAMPLES[+pick.value].name;
+}
+function clear() {
+  out.textContent = ''; err.textContent = ''; said.textContent = '';
+  report.hidden = true; report.textContent = '';
+  resubmit.hidden = true; again.hidden = true;
+}
+function load() {
+  src.value = pick.value === 'new' ? '' : SHEAF_EXAMPLES[+pick.value].text;
+  clear();
+  mark();
+}
+pick.addEventListener('change', load);
+src.addEventListener('input', clear);
+for (var i = 0; i < SHEAF_EXAMPLES.length; i++)
+  if (SHEAF_EXAMPLES[i].name === 'fermat.sheaf') pick.value = String(i);
+load();
+
+document.getElementById('run').addEventListener('click', function () {
+  clear();
+  var r = sheaf.run(src.value, reader.value, 1000000);
+  out.textContent = r.stdout;
+  err.textContent = r.stderr;
+  said.textContent = r.finished
+    ? 'The program terminated. Exit code 0. stdout: 0 bytes.'
+    : 'The program has not terminated. This page stopped reading after a million lines. The program would have gone on.';
+});
+
+/* the referee, the resubmission, and the report sent to the referee */
+var rounds = 0, reviews = 0, lastReport = '';
+function show(r) {
+  report.textContent = r.report;
+  report.hidden = false;
+  resubmit.hidden = false;
+  again.hidden = false;
+  console.info(r.confidential);
+}
+
+document.getElementById('submit').addEventListener('click', function () {
+  clear();
+  var r = sheaf.referee(src.value, manuscriptName());
+  rounds = 1; reviews = 0; lastReport = r.report;
+  show(r);
+  said.textContent = 'The referee has responded.';
+});
+
+resubmit.addEventListener('click', function () {
+  var r = sheaf.referee(src.value, manuscriptName());
+  rounds++;
+  show(r);
+  said.textContent = 'Round ' + rounds + '. Resubmitted without changes. The referee has not changed its mind.';
+});
+
+again.addEventListener('click', function () {
+  var r = sheaf.referee(lastReport, 'report.sheaf');
+  reviews++;
+  show(r);
+  if (r.report === lastReport)
+    said.textContent = 'Review ' + reviews + ' of the report. This report is its own report. It is a fixed point.';
+  else if (r.report.length > lastReport.length)
+    said.textContent = 'Review ' + reviews + ' of the report. It is longer than the report it reviews.';
+  else
+    said.textContent = 'Review ' + reviews + ' of the report.';
+  lastReport = r.report;
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The result is on the next page.</title>
+<meta name="description" content="The result is on the next page.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>">
+<!-- stdout is empty. stderr is the console. -->
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --bg: #f5f0eb; --text: #3a3530; --faint: #b5ada5; --accent: #2a6e4e; --accent-hover: #358a62; }
+[data-theme="dark"] { --bg: #1a1816; --text: #e0d8cf; --faint: #5a534a; --accent: #4a9e72; --accent-hover: #5db885; }
+body {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+main { text-align: center; }
+.promise { font-size: 1.7rem; margin-bottom: 1.4rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+footer { position: fixed; bottom: 1.4rem; font-size: 0.9rem; color: var(--faint); }
+footer a { color: var(--faint); }
+</style>
+</head>
+<body>
+
+<main>
+  <p class="promise">The result is on the next page.</p>
+  <p><a href="/next.html?p=405">next page</a></p>
+</main>
+
+<footer>p. 404 -- <a href="/">sheaf</a></footer>
+
+<script>
+(function () {
+  var saved = null;
+  try { saved = localStorage.getItem('theme'); } catch (e) {}
+  var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  console.error('H^1(X,F) = 42');
+})();
+</script>
+</body>
+</html>
