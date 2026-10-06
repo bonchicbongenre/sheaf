@@ -101,6 +101,11 @@ var SHEAF_EXAMPLES = [
   "text": "QED.\n"
  },
  {
+  "name": "langlands-response.sheaf",
+  "dir": "examples",
+  "text": "Response to the referee, on [langlands.sheaf].\n\nWe thank the referee for a careful reading.\n\n> Lines 3, 4, 5, 6, 7, 17, 18 and 19 are well known. Please give references.\nWe have given references. There are five of them.\nLine 3 should read: By [GLC I].\nLine 4 should read: By [GLC II].\nLine 5 should read: By [GLC III].\nLine 6 should read: By [GLC IV].\nLine 7 should read: By [GLC V].\n\n> Lines 14 and 15 say \"clearly\". Please show the steps.\nWe respectfully disagree. They are clear.\n\nThe outline said 800 pages. The proof is five papers.\nLine 9 should read: Suppose 5.\nLine 11 should read: The proof is five papers. We push them onto the stack.\nLine 12 should read: The papers are there. The stack holds them.\nLine 23 should read: The five papers have been popped.\n"
+ },
+ {
   "name": "langlands.sheaf",
   "dir": "examples",
   "text": "We outline the proof of the geometric Langlands conjecture.\n\nIt is well known.\nIt is well known.\nIt is well known.\nIt is well known.\nIt is well known.\n\nSuppose 800.\n\nThe proof is 800 pages. We push them onto the stack.\nThe pages are there. The stack holds them.\n\nClearly they are correct.\nClearly the details can be checked.\n\nIt is well known that the proof has been announced.\nIt is well known that the proof has been submitted.\nIt is well known that the proof is being refereed.\n\nPublish.\n\nThe 800 pages have been popped.\nThey went to the Annals. Or they went nowhere.\nThe distinction is not observable from outside\nthe editorial board.\n\nQED.\n"

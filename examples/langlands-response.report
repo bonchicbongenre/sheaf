@@ -1,0 +1,42 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        langlands-response.sheaf
+response to       report on langlands.sheaf, 9 lines corrected
+lines             28
+steps             13 (10 of them empty)
+hypotheses open   0
+claims            0 checked
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             D W C
+result            not visible
+recommendation    MAJOR REVISION
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "We outline the proof of the geometric
+Langlands conjecture." It takes 13 steps and publishes once.
+
+The result was not available to me. I have read the proof closely.
+
+The manuscript is a response to my report on [langlands.sheaf].
+The authors thank me. I have read it again, as revised. Of the two
+comments they quote, one still stands.
+
+1. Line 3 cites [GLC I]. There is no [GLC I].
+
+2. Line 4 cites [GLC II]. There is no [GLC II].
+
+3. Line 5 cites [GLC III]. There is no [GLC III].
+
+4. Line 6 cites [GLC IV]. There is no [GLC IV].
+
+5. Line 7 cites [GLC V]. There is no [GLC V].
+
+6. Lines 17, 18 and 19 are well known. Please give references.
+
+7. Lines 14 and 15 say "clearly". Please show the steps. The
+   authors respectfully disagree. I maintain it.
+
+Recommendation: major revision.
+

@@ -1,9 +1,9 @@
 LIBRARY -- CITATION INDEX
 ------------------------------------------------------------
-papers            42
+papers            43
 citations         9
 papers cited      6
-not cited         36
+not cited         37
 not held          1
 errata            2
 retracted         1
@@ -19,13 +19,14 @@ cited  paper               cited by
     1  in preparation      followup.sheaf  (not held)
 ------------------------------------------------------------
 
-I have catalogued 42 papers. They make nine citations, to seven
-papers. Of the 42 papers in the library, 36 are not cited.
+I have catalogued 43 papers. They make nine citations, to seven
+papers. Of the 43 papers in the library, 37 are not cited.
 
 [in preparation] is cited by followup.sheaf. The library does not
 hold it.
 
 fermat-response.sheaf answers the referee on fermat.sheaf.
+langlands-response.sheaf answers the referee on langlands.sheaf.
 storage-erratum-erratum.sheaf corrects storage-erratum.sheaf.
 storage-erratum.sheaf corrects storage.sheaf.
 

@@ -1,0 +1,20 @@
+Response to the referee, on [langlands.sheaf].
+
+We thank the referee for a careful reading.
+
+> Lines 3, 4, 5, 6, 7, 17, 18 and 19 are well known. Please give references.
+We have given references. There are five of them.
+Line 3 should read: By [GLC I].
+Line 4 should read: By [GLC II].
+Line 5 should read: By [GLC III].
+Line 6 should read: By [GLC IV].
+Line 7 should read: By [GLC V].
+
+> Lines 14 and 15 say "clearly". Please show the steps.
+We respectfully disagree. They are clear.
+
+The outline said 800 pages. The proof is five papers.
+Line 9 should read: Suppose 5.
+Line 11 should read: The proof is five papers. We push them onto the stack.
+Line 12 should read: The papers are there. The stack holds them.
+Line 23 should read: The five papers have been popped.

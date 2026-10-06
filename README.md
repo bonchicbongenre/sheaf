@@ -100,7 +100,7 @@ Publish.
 QED.
 ```
 
-See `examples/` for 42 programs, including the seminar, the referee,
+See `examples/` for 43 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
@@ -110,8 +110,8 @@ Yoneda, abstract nonsense, a second case that is not similar, a
 proof by contradiction, a proof of everything, a survey, a follow-up
 to the survey, an erratum, an erratum to the erratum, Brouwer's fixed
 point theorem, retracted, Nash, who cites it, the sphere by the faces
-of a tetrahedron, a cocycle condition nobody checked, and a response
-to the referee on Fermat.
+of a tetrahedron, a cocycle condition nobody checked, and responses to
+the referee on Fermat and on Langlands.
 `submissions/` holds three more. They do not terminate. Only the
 referee reads them.
 
@@ -402,6 +402,14 @@ Told that three hypotheses are open, it names them: "They are a, b and
 c. They do not exist." Told that this is not zero, it respectfully
 disagrees. Reject.
 
+`examples/langlands.sheaf` stays as it was written. It says "It is
+well known." five times, and its referee asked for references.
+`examples/langlands-response.sheaf` gives five, one for each: `By [GLC
+I].` through `By [GLC V].`, the five papers of the proof. The library
+does not hold them. "Line 3 cites [GLC I]. There is no [GLC I]." Asked
+for references, the authors gave them, and the recommendation went
+from minor revision to major.
+
 ## Gluing
 
 ```
@@ -660,7 +668,7 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 42 examples, 18 are accepted, 9 need minor revision, 10 need
+Of the 43 examples, 18 are accepted, 9 need minor revision, 11 need
 major revision, and 5 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -777,7 +785,7 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 45 reviews, 25 reach a fixed point by the third round. The
+Of the 46 reviews, 25 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 8 of
 them. All 25 recommend major revision.
@@ -787,7 +795,7 @@ used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-Of the other 20, 18 do not come round in 16 rounds. Their referee
+Of the other 21, 19 do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report says the manuscript publishes, or observes.
 Each "publishes" publishes, each "observes" observes, and each has to
