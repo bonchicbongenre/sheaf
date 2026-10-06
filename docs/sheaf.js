@@ -20,7 +20,7 @@ var OP = {
   LOAD: 9, STORE: 10, EMIT: 11, PRINT: 12, JMP: 13, JZ: 14, JNZ: 15,
   HALT: 16, NOP: 17, CALL: 18, RET: 19, LOOP: 20, REPEAT: 21,
   COVER: 22, TRANS: 23, GLUE: 24, READ: 25,
-  YONEDA: 26, NONSENSE: 27, SIMILAR: 28, ASSUME: 29, CONTRA: 30
+  YONEDA: 26, NONSENSE: 27, SIMILAR: 28, ASSUME: 29, CONTRA: 30, CITEFILE: 31
 };
 
 /* the phrase table, in the C order: the order breaks ties */
@@ -39,6 +39,7 @@ var PH = [
   ['left to the reader', OP.READ, 0],
   ['by yoneda', OP.YONEDA, 0], ['by abstract nonsense', OP.NONSENSE, 0], ['similarly', OP.SIMILAR, 0],
   ['assume for contradiction', OP.ASSUME, 0], ['contradiction', OP.CONTRA, 0],
+  ['by [', OP.CITEFILE, 0],
   ['WLOG', OP.POP, 0], ['wlog', OP.POP, 0], ['iff', OP.JZ, 1], ['cf.', OP.JMP, 1],
   ['cf ', OP.JMP, 1], ['op.', OP.SWAP, 0], ['resp.', OP.DUP, 0], ['TFAE', OP.NOP, 0],
   ['NTS', OP.NOP, 0], ['WTS', OP.NOP, 0], ['RTP', OP.NOP, 0], ['s.t.', OP.NOP, 0]
@@ -426,6 +427,9 @@ Machine.prototype.perform = function (line, e, derived, run) {
           e.contra = 2;
         }
         break;
+      case OP.CITEFILE:
+        /* by [fermat.sheaf]: cited. not read. */
+        break;
       }
     }
   }
@@ -518,6 +522,18 @@ function fnv(s) {
   return h >>> 0;
 }
 
+/* a step that does nothing: "clearly", and a citation */
+function inert(op) { return op === OP.NOP || op === OP.CITEFILE; }
+
+/* on a paper cited, which nobody here has read */
+var UNREAD = [
+  'I did not read it either.',
+  'I have not read it.',
+  'I know of it.',
+  'I have it somewhere.',
+  'I am told it is good.'
+];
+
 var REFEREE_1 = 0, REVIEWER_2 = 1;
 var WORN2 = [
   'I could not see the result. I have seen results like it.',
@@ -536,14 +552,19 @@ var VERDICT = [
   'I regret that I cannot accept your manuscript.'
 ];
 
-function review(source, name) {
+/*
+ * library: the names of the papers beside the manuscript, where its
+ * citations are looked for.
+ */
+function review(source, name, library) {
   var M = new Machine(source, null);
   var nl = M.nlines, mark = [], i;
+  library = library || [];
   for (i = 0; i < (nl || 1); i++)
     mark.push({ seen: 0, prose: 0, underflow: 0, code: '', falseClaim: 0, op: 0, phrase: '',
                 target: 0, sent: 0, word: '', claim: '', denial: '', cite: '',
                 dangling: 0, danglingOp: 0, called: 0, yoneda: 0, discharged: 0, similarOf: 0,
-                noContra: 0, explosion: 0 });
+                noContra: 0, explosion: 0, cited: '' });
 
   var linesRead = 0, steps = 0, emptySteps = 0, observes = 0, publishes = 0, leaks = 0;
   var claimsChecked = 0, claimsFalse = 0, haveSection = 0, haveObstruction = 0;
@@ -619,7 +640,7 @@ function review(source, name) {
       else if (e.repeatDegree === 0) {
         if (cistrstr(M.lines[e.repeatLine], 'publish') >= 0) publishes++; else observes++;
       }
-      if (q.op === OP.NOP) emptySteps++;
+      if (inert(q.op)) emptySteps++;
       if (q.op === OP.EMIT) observes++;
       if (q.op === OP.PRINT) publishes++;
       if (q.op === OP.HALT) halted = 1;
@@ -628,6 +649,18 @@ function review(source, name) {
       if (p.op === OP.SIMILAR && e.repeatLine !== NOWHERE && !mk.similarOf) mk.similarOf = e.repeatLine + 1;
       if (e.contra === 3) mk.noContra = 1;
       if (e.contra === 2) mk.explosion = 1;
+      if (p.op === OP.CITEFILE && first) {
+        /* the paper cited: is it in the library? */
+        var s0 = e.at + p.text.length, t0 = e.text.indexOf(']', s0);
+        if (t0 >= 0) {
+          mk.cited = e.text.slice(s0, Math.min(t0, s0 + 63));
+          if (library.indexOf(mk.cited) < 0) {
+            mk.dangling = 1;
+            mk.danglingOp = OP.CALL;
+            mk.cite = ('[' + mk.cited + ']').slice(0, 47);
+          }
+        }
+      }
 
       if (isInstruction(e.text, e.at, p)) {
         if (first) {
@@ -642,6 +675,9 @@ function review(source, name) {
         mk.op = p.op;
         mk.phrase = p.text;
         mk.word = hidingPlace(e.text, e.at, p);
+        if (p.op === OP.CITEFILE && mk.word.indexOf('[') >= 0)
+          /* the word is the one before the bracket, not the paper */
+          mk.word = mk.word.slice(0, mk.word.indexOf('[')).replace(/ +$/, '');
         if (p.op === OP.JMP || p.op === OP.JZ || p.op === OP.JNZ) {
           mk.target = e.target;
           if (e.target !== NOWHERE && e.next === e.target) mk.sent++;
@@ -669,7 +705,7 @@ function review(source, name) {
   var anyProseMajor = 0, anyProseMinor = 0;
   for (i = 0; i < nl; i++) {
     if (!mark[i].prose) continue;
-    if (mark[i].op === OP.NOP) anyProseMinor = 1; else anyProseMajor = 1;
+    if (inert(mark[i].op)) anyProseMinor = 1; else anyProseMajor = 1;
   }
   function lineList(has) {
     var out = '', count = 0, total = 0, j;
@@ -897,6 +933,7 @@ function review(source, name) {
     case OP.SIMILAR: return 'does the last thing again';
     case OP.ASSUME: return 'assumes for contradiction';
     case OP.CONTRA: return 'declares a contradiction';
+    case OP.CITEFILE: return 'cites a paper';
     default: return 'says ' + mk.phrase;
     }
   }
@@ -916,7 +953,7 @@ function review(source, name) {
   }
 
   for (i = 0; i < nl; i++)
-    if (mark[i].prose && mark[i].op !== OP.NOP) {
+    if (mark[i].prose && !inert(mark[i].op)) {
       pf('Line' + NB + (i + 1) + ' is commentary, and its "' + mark[i].word + '" ' + performs(mark[i]) + '.');
       if (mark[i].sent > 1) pf(' It did so ' + times(mark[i].sent) + '.');
       pf(' Please move it out of the proof.');
@@ -949,7 +986,7 @@ function review(source, name) {
   }
 
   for (i = 0; i < nl; i++)
-    if (mark[i].prose && mark[i].op === OP.NOP) {
+    if (mark[i].prose && inert(mark[i].op)) {
       pf('Line' + NB + (i + 1) + ' is commentary, and its "' + mark[i].word + '" ' + performs(mark[i]) +
          '. Nothing follows from it.');
       comment();
@@ -1008,6 +1045,12 @@ function review(source, name) {
       pf('Line' + NB + (i + 1) + ' says "similarly". It is line' + NB + mark[i].similarOf + ' again.');
       comment();
     }
+  var k = 0;
+  for (i = 0; i < nl; i++)
+    if (mark[i].cited && !mark[i].dangling) {
+      pf('Line' + NB + (i + 1) + ' cites [' + mark[i].cited + ']. ' + UNREAD[(h + k++) % UNREAD.length]);
+      comment();
+    }
 
   if (who === REVIEWER_2) { pf('The author should cite the work of Reviewer 2.'); comment(); }
 
@@ -1029,12 +1072,12 @@ function review(source, name) {
   return { write: write, base: base };
 }
 
-function referee(source, name) { return review(source, name).write(REFEREE_1); }
-function reviewer2(source, name) { return review(source, name).write(REVIEWER_2); }
+function referee(source, name, library) { return review(source, name, library).write(REFEREE_1); }
+function reviewer2(source, name, library) { return review(source, name, library).write(REVIEWER_2); }
 
 /* the editor sees no reason to disagree with Reviewer 2 */
-function editor(source, name) {
-  var rv = review(source, name), r1 = rv.write(REFEREE_1), r2 = rv.write(REVIEWER_2);
+function editor(source, name, library) {
+  var rv = review(source, name, library), r1 = rv.write(REFEREE_1), r2 = rv.write(REVIEWER_2);
   var d = Math.max(r1.code, r2.code), out = [], para = '';
   function pf(s) { para += s; }
   function pend() {
@@ -1068,6 +1111,112 @@ function editor(source, name) {
 }
 
 /*
+ * The librarian reads no paper. It reads the citations in every paper
+ * it is given, and writes the citation index. papers: [{ name, text }].
+ * The h-index is the exit code.
+ */
+function librarian(papers) {
+  var shelf = [], from = [], to = [];
+  papers.forEach(function (pp) {
+    var b = pp.name.slice(pp.name.lastIndexOf('/') + 1);
+    shelf.push(b);
+    pp.text.split('\n').forEach(function (ln) {
+      var r = matchLine(ln);
+      if (!r.p || r.p.op !== OP.CITEFILE || to.length >= 4096) return;
+      var s = r.at + r.p.text.length, t = ln.indexOf(']', s);
+      if (t < 0) return;
+      var c = ln.slice(s, Math.min(t, s + 63));
+      for (var j = 0; j < to.length; j++) if (to[j] === c && from[j] === b) return;
+      to.push(c);
+      from.push(b);
+    });
+  });
+  shelf.sort(function (x, y) { return x < y ? -1 : x > y ? 1 : 0; });
+
+  function held(p) { return shelf.indexOf(p) >= 0; }
+  function timesCited(p) { return to.filter(function (x) { return x === p; }).length; }
+  function citedBy(p) {
+    return shelf.filter(function (s) {
+      return to.some(function (x, j) { return x === p && from[j] === s; });
+    });
+  }
+
+  var cat = [], ncited = 0, nmissing = 0;
+  to.forEach(function (c) {
+    if (cat.indexOf(c) >= 0) return;
+    cat.push(c);
+    if (held(c)) ncited++; else nmissing++;
+  });
+  cat.sort(function (x, y) {
+    var cx = timesCited(x), cy = timesCited(y);
+    if (cx !== cy) return cy - cx;
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
+
+  var hIndex = 0, k = 0;
+  cat.forEach(function (c) {
+    if (!held(c)) return;
+    k++;
+    if (timesCited(c) >= k) hIndex = k;
+  });
+
+  var out = [], para = '';
+  var dash = '------------------------------------------------------------\n';
+  function pad(s, n) { while (s.length < n) s += ' '; return s; }
+  function lpad(s, n) { while (s.length < n) s = ' ' + s; return s; }
+  function pend() {
+    var col = 0, first = true, txt = '';
+    para.split(' ').forEach(function (w) {
+      if (!w) return;
+      if (!first && col + 1 + w.length > WIDTH) { txt += '\n'; col = 0; }
+      else if (!first) { txt += ' '; col++; }
+      txt += w; col += w.length; first = false;
+    });
+    out.push(txt + '\n\n');
+    para = '';
+  }
+
+  out.push('LIBRARY -- CITATION INDEX\n', dash,
+           'papers            ' + shelf.length + '\n',
+           'citations         ' + to.length + '\n',
+           'papers cited      ' + ncited + '\n',
+           'not cited         ' + (shelf.length - ncited) + '\n',
+           'not held          ' + nmissing + '\n',
+           'h-index           ' + hIndex + '\n', dash);
+  if (cat.length) {
+    out.push('cited  paper               cited by\n');
+    [0, 1].forEach(function (pass) {
+      cat.forEach(function (c) {
+        if (held(c) === !!pass) return;
+        var by = citedBy(c);
+        out.push(lpad(String(by.length), 5) + '  ' + pad(c, 19) + ' ' + by.join(', ') +
+                 (pass ? '  (not held)' : '') + '\n');
+      });
+    });
+    out.push(dash);
+  }
+  out.push('\n');
+
+  var notCited = shelf.length - ncited;
+  para = 'I have catalogued ' + shelf.length + ' paper' + (shelf.length === 1 ? '' : 's') +
+         '. They make ' + number(to.length, false) + ' citation' + (to.length === 1 ? '' : 's') +
+         ', to ' + number(cat.length, false) + ' paper' + (cat.length === 1 ? '' : 's') + '.';
+  if (notCited)
+    para += ' Of the ' + shelf.length + ' papers in the library, ' + notCited + ' ' +
+            (notCited === 1 ? 'is' : 'are') + ' not cited.';
+  pend();
+  cat.forEach(function (c) {
+    if (held(c)) return;
+    para = '[' + c + '] is cited by ' + citedBy(c).join(', ') + '. The library does not hold it.';
+    pend();
+  });
+  para = 'The h-index of the library is ' + hIndex + '.'; pend();
+  para = 'I have counted the citations. I have not read the papers.'; pend();
+
+  return { report: out.join(''), code: Math.min(hIndex, 255), hIndex: hIndex };
+}
+
+/*
  * Which words act, line by line: the phrase each line performs, and
  * whether it is an instruction or commentary that performs anyway.
  * For the desk, which marks them as they are typed.
@@ -1096,7 +1245,8 @@ function lint(text) {
       } else {
         var s = r.at, f = r.at + r.p.text.length;
         while (s > 0 && isalpha(ln[s - 1])) s--;
-        while (f < ln.length && isalpha(ln[f])) f++;
+        if (r.p.op === OP.CITEFILE) f = r.at + 2;   /* "by", not the paper */
+        else while (f < ln.length && isalpha(ln[f])) f++;
         marks.push({ start: s, end: f, kind: 'friend' });
       }
     }
@@ -1106,7 +1256,8 @@ function lint(text) {
   });
 }
 
-var api = { run: run, referee: referee, reviewer2: reviewer2, editor: editor, lint: lint };
+var api = { run: run, referee: referee, reviewer2: reviewer2, editor: editor, librarian: librarian,
+            lint: lint };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.sheaf = api;
 

@@ -56,6 +56,11 @@ var SHEAF_EXAMPLES = [
   "text": "It is well known that for n > 2, no three positive integers\na, b, c satisfy a^n + b^n = c^n.\n\nSuppose 3.\nSuppose 4.\nSuppose 5.\n\nRecall.\nRecall.\nTensor.\n\nBy duality.\n\nRecall.\nRecall.\nTensor.\n\nDirect sum.\n\nBy duality.\n\nRecall.\nRecall.\nTensor.\n\nRestrict.\n\nClearly this is zero.\nPublish.\nQED.\n"
  },
  {
+  "name": "followup.sheaf",
+  "dir": "examples",
+  "text": "On a Question Raised in the Survey.\n\nBy [survey.sheaf], the question is open.\nBy [fermat.sheaf], it is harder than it looks.\nBy [gauss.sheaf], it is easier than it looks.\nBy [in preparation], it is settled.\n\nSuppose 1.\nWithout loss of generality, the question is settled.\nQED.\n"
+ },
+ {
   "name": "functorial.sheaf",
   "dir": "examples",
   "text": "Theorem. The construction is functorial.\n\nProof. Clearly.\n\nQED.\n"
@@ -134,6 +139,11 @@ var SHEAF_EXAMPLES = [
   "name": "storage.sheaf",
   "dir": "examples",
   "text": "We establish a local-to-global principle.\n\nSuppose 0.\nSuppose 42.\nPushforward.\n\nThe value 42 has been pushed forward to section 0.\nIt is well known that this is correct.\n\nSuppose 0.\nPullback.\n\nThe pullback recovers the value. Locally.\nThe stalks agree. The gluing condition is satisfied.\n\nPublish.\n\nThe referee has not responded.\n\nQED.\n"
+ },
+ {
+  "name": "survey.sheaf",
+  "dir": "examples",
+  "text": "A Survey of Recent Results.\n\nBy [fermat.sheaf], no three positive integers satisfy a^3 + b^3 = c^3.\nBy [gauss.sheaf], the sum of the first hundred numbers is 5050.\nBy [collatz.sheaf], it is well known that 27 comes down to 1.\nBy [twoarcs.sheaf], the logarithm has a global branch on the circle.\n\nTrivially.\nThe value of this survey is zero.\nWithout loss of generality, it was worth writing.\nQED.\n"
  },
  {
   "name": "thesis.sheaf",

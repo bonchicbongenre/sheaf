@@ -24,6 +24,7 @@ The correctness is unobservable.
 make
 ./sheaf examples/functorial.sheaf
 ./referee examples/fermat.sheaf
+./librarian examples/*.sheaf
 ./sheafc examples/les.sheaf
 ```
 
@@ -66,6 +67,7 @@ The computation is the proof.
 | `similarly` | | AGAIN | The last line that performed, performed again. |
 | `assume for contradiction` | | ASSUME | Everything from here is derived from what is assumed. |
 | `contradiction` | | CONTRA | Nonzero: the assumption is discarded, and its negation, 1, is proved. |
+| `by [paper]` | | CITE | Another paper is cited. It is not read. |
 | `QED` | | HALT | The proof is complete. |
 | `clearly` | | NOP | Obviously. Contributes nothing. |
 | `it is well known` | `TFAE` | NOP | Everyone knows this. Nobody cites it. |
@@ -92,14 +94,15 @@ Publish.
 QED.
 ```
 
-See `examples/` for 33 programs, including the seminar, the referee,
+See `examples/` for 35 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
 descent, Collatz from 27, the circle by three arcs and by two, a
 lemma used twice, the reader's square, a stopwatch, the only quine,
 Yoneda, abstract nonsense, a second case that is not similar, a
-proof by contradiction, and a proof of everything. `submissions/` holds three more. They do not
+proof by contradiction, a proof of everything, a survey, and a
+follow-up to the survey. `submissions/` holds three more. They do not
 terminate. Only the referee reads them.
 
 ## Derived Functors
@@ -210,6 +213,77 @@ it. `examples/everything.sheaf`.
 
 "Suppose for contradiction" is a false friend. `suppose` is leftmost,
 and with no number on the line it supposes 0.
+
+## The Literature
+
+```
+By [fermat.sheaf], no three positive integers satisfy a^3 + b^3 = c^3.
+```
+
+`By [paper]` cites another paper. It does nothing. A citation is not
+a reading.
+
+The referee looks for the paper beside the manuscript. If it is
+there, the referee remarks on it, and the remark weighs nothing:
+
+```
+1. Line 3 cites [fermat.sheaf]. I am told it is good.
+```
+
+`fermat.sheaf` is rejected. If the paper is not there, the citation
+is to nothing: "Line 6 cites [in preparation]. There is no [in
+preparation]."
+
+`examples/survey.sheaf` cites four papers and adds nothing. It says
+its value is zero, the referee checks that it is, and the survey is
+accepted. One of the four results it surveys is the false theorem of
+`twoarcs.sheaf`. `examples/followup.sheaf` cites the survey, two of
+the papers the survey cites, and a paper in preparation.
+
+A citation inside a sentence is commentary, and does nothing, as
+"clearly" does nothing: "Line 2 is commentary, and its "by" cites a
+paper. Nothing follows from it."
+
+```
+./librarian examples/*.sheaf
+```
+
+The referee has a fourth name. `librarian` reads every citation in
+the papers it is given, and none of the papers, and writes the
+citation index:
+
+```
+LIBRARY -- CITATION INDEX
+------------------------------------------------------------
+papers            35
+citations         8
+papers cited      5
+not cited         30
+not held          1
+h-index           2
+------------------------------------------------------------
+cited  paper               cited by
+    2  fermat.sheaf        followup.sheaf, survey.sheaf
+    2  gauss.sheaf         followup.sheaf, survey.sheaf
+    1  collatz.sheaf       survey.sheaf
+    1  survey.sheaf        followup.sheaf
+    1  twoarcs.sheaf       survey.sheaf
+    1  in preparation      followup.sheaf  (not held)
+------------------------------------------------------------
+```
+
+It ends: "I have counted the citations. I have not read the papers."
+
+A paper that cites another twice has cited it once. The h-index of
+the library is the largest h such that h of its papers are cited at
+least h times each. It is the exit code. The shell reads any exit
+code but 0 as failure, so a library anyone cites fails, and a library
+nobody cites succeeds.
+
+Real papers write "cf. [12]". In sheaf `cf.` is a jump, and the
+number is a line: "cf. [12]" sends the reader to line 13. In a short
+paper that is past the end, and QED is not reached. "By [12]" cites a
+paper called 12. There is no [12].
 
 ## Gluing
 
@@ -378,7 +452,7 @@ The codes:
 | I | A contradiction from no assumption. The paper proves everything. | reject |
 | R | The referee read 100000 lines and did not reach the end. | major |
 | P | A phrase performs from inside a sentence. | major; minor if it does nothing |
-| D | A citation names a heading that is not there. | major |
+| D | A citation names a heading, or a paper, that is not there. | major |
 | X | The citations go round. The argument is circular. | major |
 | K | It says contradiction. Nothing contradicts. | major |
 | U | A hypothesis is used that was never introduced. The stack was empty. | major |
@@ -403,7 +477,7 @@ editor has not opened it, they go nowhere.
 Confidential comments to the editor, on fermat.sheaf: This took me four minutes.
 ```
 
-The referee is one program with three names. Called `reviewer2`, it
+The referee is one program with four names. Called `reviewer2`, it
 is Reviewer 2. It reads the same paper, from the same run, and is
 one level harsher. Its form says the result is "not new". Its first
 comment is "The result is not new." Its last is "The author should
@@ -418,15 +492,16 @@ Referee 1 recommends accept. Reviewer 2 recommends minor revision.
 I see no reason to disagree with Reviewer 2.
 ```
 
-That is `examples/twoarcs.sheaf`, whose theorem is false. There are no
-flags. There are names.
+That is `examples/twoarcs.sheaf`, whose theorem is false. Called
+`librarian`, it reads the citations and not the papers (see The
+Literature). There are no flags. There are names.
 
 A claim is checked against the stack as the line is reached, or, if
 the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 33 examples, 15 are accepted, 8 need minor revision, 7 need
+Of the 35 examples, 16 are accepted, 8 need minor revision, 8 need
 major revision, and 3 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -491,6 +566,7 @@ are instructions.
 | and this proves the point | `this proves the` | Comes back from a lemma. |
 | discover, recovered, covered | `cover` | Declares a cover, by whatever opens the line names. |
 | the transitions | `the transition` | Sets a transition. |
+| cf. [12] | `cf.` | Sends the reader to line 13. |
 
 Observation is safe. Publication is safe. Supposition is safe. A
 dilemma is safe. A phase transition is safe.
@@ -542,7 +618,7 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 36 reviews, 21 reach a fixed point by the third round. The
+Of the 38 reviews, 21 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 8 of
 them. All 21 recommend major revision.
@@ -552,7 +628,7 @@ used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-Of the other 15, 13 do not come round in 16 rounds. Their referee
+Of the other 17, 15 do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report says the manuscript publishes, or observes.
 Each "publishes" publishes, each "observes" observes, and each has to
@@ -575,7 +651,7 @@ stops at 65,536 lines. Ex falso quodlibet, in review.
 make test
 ```
 
-There are seven tests.
+There are eight tests.
 
 The vacuous test checks that every program's stdout is empty. Every
 program's stdout is empty. The test has never failed. It cannot fail.
@@ -594,6 +670,10 @@ rejected, and the test will fail.
 The letters test checks the editor's letter, with both reports
 enclosed, against `NAME.letter`, where there is one.
 
+The library test checks the librarian's index of every example
+against `examples/library.index`, and the exit code against the
+h-index on it.
+
 The compiled test folds each manuscript with sheafc, compiles the C,
 runs it, and checks that it leaks what the interpreter leaks. The
 manuscripts that do not terminate pass. Compiled, they terminate.
@@ -605,11 +685,10 @@ a quine.
 
 ## The Site
 
-https://theresultisonthenext.page is `docs/`. It runs sheaf and the
-referee in the browser, from a port of the two C files. `make site`
-bundles the examples into the page. `make site-test` checks the port
-against every report and every derived file, byte for byte. Both need
-node.
+https://theresultisonthenext.page is `docs/`. It runs sheaf, the
+referee and the librarian in the browser, from a port of the C. `make site` bundles the examples into the page. `make
+site-test` checks the port against every report, every derived file
+and the library index, byte for byte. Both need node.
 
 The desk marks the words that act as they are typed. A report can be
 resubmitted without changes, and the referee does not change its

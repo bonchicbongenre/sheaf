@@ -132,7 +132,8 @@ enum {
     COVER_, TRANS_, GLUE_,
     READ_,
     YONEDA_, NONSENSE_, SIMILAR_,
-    ASSUME_, CONTRA_
+    ASSUME_, CONTRA_,
+    CITEFILE_
 };
 
 typedef struct {
@@ -184,6 +185,8 @@ static const Phrase PH[] = {
     /* proof by contradiction */
     { "assume for contradiction",      ASSUME_,   0 },
     { "contradiction",                 CONTRA_,   0 },
+    /* the literature: a citation is not a reading */
+    { "by [",                          CITEFILE_, 0 },
     /* abbreviations -- the working mathematician's shorthand */
     { "WLOG",                          POP_,   0 },
     { "wlog",                          POP_,   0 },
@@ -696,6 +699,9 @@ static void perform(int line, Event *e, FILE *derived, int *running)
                     e->discharged = again.discharged;
                     e->contra = again.contra;
                 }
+                break;
+            case CITEFILE_:
+                /* by [fermat.sheaf]: cited. not read. */
                 break;
             case ASSUME_:
                 /* everything from here is derived from what is assumed */

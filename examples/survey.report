@@ -1,0 +1,30 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        survey.sheaf
+lines             11
+steps             7 (4 of them empty)
+hypotheses open   0
+claims            1 checked, 0 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             none
+result            pending
+recommendation    ACCEPT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "A Survey of Recent Results." It takes 7
+steps and does not publish.
+
+The result was not visible to me. What follows concerns the text.
+
+1. Line 3 cites [fermat.sheaf]. I am told it is good.
+
+2. Line 4 cites [gauss.sheaf]. I did not read it either.
+
+3. Line 5 cites [collatz.sheaf]. I have not read it.
+
+4. Line 6 cites [twoarcs.sheaf]. I know of it.
+
+Recommendation: accept.
+

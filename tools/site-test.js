@@ -10,18 +10,20 @@ let pass = 0, fail = 0;
 const read = (p) => (fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '');
 
 for (const dir of ['examples', 'submissions']) {
-  for (const f of fs.readdirSync(path.join(root, dir)).sort()) {
+  // the papers beside the manuscript, where its citations are looked for
+  const library = fs.readdirSync(path.join(root, dir));
+  for (const f of library.slice().sort()) {
     if (!f.endsWith('.sheaf')) continue;
     const name = f.slice(0, -6);
     const text = fs.readFileSync(path.join(root, dir, f), 'utf8');
 
-    const r = sheaf.referee(text, f);
+    const r = sheaf.referee(text, f, library);
     const want = read(path.join(root, dir, name + '.report'));
     let ok1 = r.report === want;
 
     // the editor's letter, where there is one
     const letter = path.join(root, dir, name + '.letter');
-    if (fs.existsSync(letter) && sheaf.editor(text, f).report !== read(letter)) {
+    if (fs.existsSync(letter) && sheaf.editor(text, f, library).report !== read(letter)) {
       ok1 = false;
       console.log('  ' + name + ': the letter differs');
     }
@@ -45,5 +47,22 @@ for (const dir of ['examples', 'submissions']) {
     }
   }
 }
+// the librarian, over every example
+{
+  const papers = fs.readdirSync(path.join(root, 'examples')).filter((f) => f.endsWith('.sheaf'))
+    .map((f) => ({ name: f, text: fs.readFileSync(path.join(root, 'examples', f), 'utf8') }));
+  const index = read(path.join(root, 'examples', 'library.index'));
+  const r = sheaf.librarian(papers);
+  const h = (index.match(/^h-index +(\d+)$/m) || [])[1];
+  if (r.report === index && String(r.code) === h) { pass++; console.log('  library:         PASS'); }
+  else {
+    fail++;
+    console.log('  library:         FAIL');
+    const a = r.report.split('\n'), b = index.split('\n');
+    for (let i = 0; i < Math.max(a.length, b.length); i++)
+      if (a[i] !== b[i]) { console.log('    line ' + (i + 1) + '\n    want: ' + b[i] + '\n    got:  ' + a[i]); break; }
+  }
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

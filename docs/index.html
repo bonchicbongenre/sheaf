@@ -284,6 +284,7 @@ footer { margin-top: 3rem; text-align: center; }
     <button class="go" id="run">Run</button>
     <button class="go quiet" id="submit">Submit to the referee</button>
     <button class="go quiet" id="editor">Send to the editor</button>
+    <button class="go quiet" id="librarian">Ask the librarian</button>
     <button class="go quiet" id="resubmit" hidden>Resubmit without changes</button>
     <button class="go quiet" id="again" hidden>Referee the report</button>
   </div>
@@ -316,6 +317,12 @@ footer { margin-top: 3rem; text-align: center; }
 
 <p><code>Assume for contradiction.</code> and <code>Contradiction.</code> If what was derived disagrees with what was assumed, the assumption is discarded and its negation proved. If nothing disagrees, the referee says so: "Nothing contradicts." A contradiction from no assumption proves everything, and the referee rejects the paper.</p>
 
+<h2>The literature</h2>
+
+<p><code>By [fermat.sheaf],</code> cites another paper. It does nothing: a citation is not a reading. The referee looks for the paper beside the manuscript, and remarks that it did not read it either, or that it is told the paper is good. It is told fermat.sheaf is good; fermat.sheaf is rejected. A citation to <code>[in preparation]</code> is a citation to nothing. The survey cites four papers, adds nothing, and is accepted.</p>
+
+<p>The librarian reads every citation in the library and none of the papers, and writes the citation index. Its exit code is the h-index, so a library anyone cites fails, and a library nobody cites succeeds. Real papers write "cf. [12]". In sheaf <code>cf.</code> is a jump, and it sends the reader to line 13.</p>
+
 <h2>Gluing</h2>
 
 <p><code>Cover the circle by U1, U2 and U3.</code> The transitions on the overlaps are a Cech 1-cochain on the nerve, and <code>By gluing.</code> asks whether it is a coboundary. On the circle the branches of the logarithm do not glue, and the class leaks: <code>H^1(U,Z) = Z^1; the class is (1)</code>. With two arcs the nerve is one edge, everything glues, and the circle has no hole.</p>
@@ -328,13 +335,13 @@ footer { margin-top: 3rem; text-align: center; }
 
 <p>The referee is a second program. It reads the manuscript while the proof runs beside it, and writes a report. It checks the claims in the prose against the stack, and says whether they hold, never what holds. It finds commentary that performs, hypotheses never introduced or never discharged, citations to nothing, circular arguments, and things that are well known. It does not do exercises. Its confidential comments to the editor go to file descriptor 3, if the editor has opened it. Here, they go to the console.</p>
 
-<p>The same program, called <code>reviewer2</code>, is Reviewer 2: it reads the same paper, is one level harsher, cannot see the result, and knows it is not new. Called <code>editor</code>, it writes the decision letter and encloses both reports. The editor sees no reason to disagree with Reviewer 2.</p>
+<p>The same program, called <code>reviewer2</code>, is Reviewer 2: it reads the same paper, is one level harsher, cannot see the result, and knows it is not new. Called <code>editor</code>, it writes the decision letter and encloses both reports. The editor sees no reason to disagree with Reviewer 2. Called <code>librarian</code>, it counts the citations.</p>
 
 <table>
 <tr><td>F</td><td>A claim is false.</td></tr>
 <tr><td>R</td><td>The referee did not reach the end.</td></tr>
 <tr><td>P</td><td>A phrase performs from inside a sentence.</td></tr>
-<tr><td>D</td><td>A citation names a heading that is not there.</td></tr>
+<tr><td>D</td><td>A citation names a heading, or a paper, that is not there.</td></tr>
 <tr><td>X</td><td>The argument is circular.</td></tr>
 <tr><td>U</td><td>A hypothesis is used that was never introduced.</td></tr>
 <tr><td>O</td><td>Hypotheses are still open at QED.</td></tr>
@@ -447,6 +454,16 @@ src.addEventListener('scroll', function () { backdrop.scrollTop = src.scrollTop;
 function manuscriptName() {
   return pick.value === 'new' ? 'manuscript.sheaf' : SHEAF_EXAMPLES[+pick.value].name;
 }
+/* the papers beside the manuscript: a new one is written among the examples */
+function shelfOf() {
+  var dir = pick.value === 'new' ? 'examples' : SHEAF_EXAMPLES[+pick.value].dir;
+  var papers = SHEAF_EXAMPLES.filter(function (ex) { return ex.dir === dir; })
+    .map(function (ex) { return { name: ex.name, text: ex.text }; });
+  if (pick.value === 'new') papers.push({ name: manuscriptName(), text: src.value });
+  else papers[papers.map(function (p) { return p.name; }).indexOf(manuscriptName())].text = src.value;
+  return papers;
+}
+function library() { return shelfOf().map(function (p) { return p.name; }); }
 function clear() {
   out.textContent = ''; err.textContent = ''; said.textContent = '';
   report.hidden = true; report.textContent = '';
@@ -485,7 +502,7 @@ function show(r) {
 
 document.getElementById('submit').addEventListener('click', function () {
   clear();
-  var r = sheaf.referee(src.value, manuscriptName());
+  var r = sheaf.referee(src.value, manuscriptName(), library());
   rounds = 1; reviews = 0; lastReport = r.report;
   show(r);
   said.textContent = 'The referee has responded.';
@@ -493,22 +510,31 @@ document.getElementById('submit').addEventListener('click', function () {
 
 document.getElementById('editor').addEventListener('click', function () {
   clear();
-  var r = sheaf.editor(src.value, manuscriptName());
+  var r = sheaf.editor(src.value, manuscriptName(), library());
   report.textContent = r.report;
   report.hidden = false;
   console.info(r.confidential);
   said.textContent = 'The editor has written. Both reports are enclosed.';
 });
 
+document.getElementById('librarian').addEventListener('click', function () {
+  clear();
+  var r = sheaf.librarian(shelfOf());
+  report.textContent = r.report;
+  report.hidden = false;
+  said.textContent = 'The librarian has catalogued the shelf. Exit code ' + r.code + ', the h-index. ' +
+    (r.code ? 'A library nobody cites exits 0.' : 'Nobody cites this library. It succeeds.');
+});
+
 resubmit.addEventListener('click', function () {
-  var r = sheaf.referee(src.value, manuscriptName());
+  var r = sheaf.referee(src.value, manuscriptName(), library());
   rounds++;
   show(r);
   said.textContent = 'Round ' + rounds + '. Resubmitted without changes. The referee has not changed its mind.';
 });
 
 again.addEventListener('click', function () {
-  var r = sheaf.referee(lastReport, 'report.sheaf');
+  var r = sheaf.referee(lastReport, 'report.sheaf', library());
   reviews++;
   show(r);
   if (r.report === lastReport)

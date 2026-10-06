@@ -22,13 +22,15 @@
  *
  * called as reviewer2, it is Reviewer 2: one level harsher, and sure
  * the result is not new. called as editor, it writes the decision
- * letter, and encloses both reports.
+ * letter, and encloses both reports. called as librarian, it reads
+ * the citations in every paper it is given and none of the papers.
  *
  * cc -std=c99 -Wall -Wextra -pedantic -o referee referee.c
  *
  * usage: referee manuscript.sheaf
  *        reviewer2 manuscript.sheaf
  *        editor manuscript.sheaf
+ *        librarian paper.sheaf ...
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
@@ -39,6 +41,9 @@
 
 #define BUDGET  100000
 #define WIDTH   66
+
+/* a step that does nothing: "clearly", and a citation */
+#define INERT(op) ((op) == NOP_ || (op) == CITEFILE_)
 
 enum { ACCEPT, MINOR, MAJOR, REJECT };
 
@@ -95,7 +100,17 @@ static const char *CONFIDENTIAL2[] = {
     "This is my third review of this paper, at a third journal.",
 };
 
+/* on a paper cited, which nobody here has read */
+static const char *UNREAD[] = {
+    "I did not read it either.",
+    "I have not read it.",
+    "I know of it.",
+    "I have it somewhere.",
+    "I am told it is good.",
+};
+
 #define NFIELD (sizeof FIELD / sizeof FIELD[0])
+#define NUNREAD (sizeof UNREAD / sizeof UNREAD[0])
 #define NWORN  (sizeof WORN / sizeof WORN[0])
 #define NCONF  (sizeof CONFIDENTIAL / sizeof CONFIDENTIAL[0])
 #define NWORN2 (sizeof WORN2 / sizeof WORN2[0])
@@ -125,7 +140,11 @@ typedef struct {
     int  similar_of;     /* similarly: the line it repeats, from 1 */
     char no_contra;      /* "contradiction", and nothing contradicts */
     char explosion;      /* a contradiction from nothing assumed */
+    char cited[64];      /* by [fermat.sheaf]: the paper cited */
 } Mark;
+
+/* where the manuscript is, so its citations can be looked for beside it */
+static char dir[1024];
 
 static Mark *mark;
 
@@ -317,7 +336,7 @@ static void read_line(const Event *e, void *ctx)
             if (cistrstr(lines[e->repeat_line], "publish")) publishes++;
             else observes++;
         }
-        if (q->op == NOP_)  empty_steps++;
+        if (INERT(q->op))   empty_steps++;
         if (q->op == EMIT_) observes++;
         if (q->op == PRINT_) publishes++;
         if (q->op == HALT_) halted = 1;
@@ -327,6 +346,26 @@ static void read_line(const Event *e, void *ctx)
             m->similar_of = e->repeat_line + 1;
         if (e->contra == 3) m->no_contra = 1;
         if (e->contra == 2) m->explosion = 1;
+        if (p->op == CITEFILE_ && first) {
+            /* the paper cited: is it in the library? */
+            const char *s = e->at + strlen(p->text), *t = strchr(s, ']');
+            if (t) {
+                size_t n = (size_t)(t - s);
+                if (n >= sizeof m->cited) n = sizeof m->cited - 1;
+                memcpy(m->cited, s, n);
+                m->cited[n] = '\0';
+                char path[1200];
+                snprintf(path, sizeof path, "%s%s", dir, m->cited);
+                FILE *f = fopen(path, "r");
+                if (f) {
+                    fclose(f);
+                } else {
+                    m->dangling = 1;
+                    m->dangling_op = CALL_;
+                    snprintf(m->cite, sizeof m->cite, "[%s]", m->cited);
+                }
+            }
+        }
 
         if (is_instruction(e->text, e->at, p)) {
             if (first) {
@@ -346,6 +385,14 @@ static void read_line(const Event *e, void *ctx)
             m->op = p->op;
             m->phrase = p->text;
             hiding_place(e->text, e->at, p, m->word, sizeof m->word);
+            if (p->op == CITEFILE_) {
+                /* the word is the one before the bracket, not the paper */
+                char *b = strchr(m->word, '[');
+                if (b) {
+                    while (b > m->word && b[-1] == ' ') b--;
+                    *b = '\0';
+                }
+            }
             if (p->op == JMP_ || p->op == JZ_ || p->op == JNZ_) {
                 m->target = e->target;
                 if (e->target != NOWHERE && e->next == e->target)
@@ -516,6 +563,7 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case SIMILAR_: return "does the last thing again";
     case ASSUME_: return "assumes for contradiction";
     case CONTRA_: return "declares a contradiction";
+    case CITEFILE_: return "cites a paper";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;
@@ -683,7 +731,7 @@ static void find(const char *file)
 {
     for (int i = 0; i < nlines; i++) {
         if (!mark[i].prose) continue;
-        if (mark[i].op == NOP_) any_prose_minor = 1;
+        if (INERT(mark[i].op)) any_prose_minor = 1;
         else any_prose_major = 1;
     }
     nu = line_list(ul, sizeof ul, has_underflow);
@@ -850,7 +898,7 @@ static int write_report(int who)
     }
 
     for (int i = 0; i < nlines; i++)
-        if (mark[i].prose && mark[i].op != NOP_) {
+        if (mark[i].prose && !INERT(mark[i].op)) {
             pf("Line" NB "%d is commentary, and its \"%s\" %s.",
                i + 1, mark[i].word, performs(&mark[i], buf, sizeof buf));
             if (mark[i].sent > 1) {
@@ -898,7 +946,7 @@ static int write_report(int who)
     }
 
     for (int i = 0; i < nlines; i++)
-        if (mark[i].prose && mark[i].op == NOP_) {
+        if (mark[i].prose && INERT(mark[i].op)) {
             pf("Line" NB "%d is commentary, and its \"%s\" %s. Nothing follows from it.",
                i + 1, mark[i].word, performs(&mark[i], buf, sizeof buf));
             comment();
@@ -962,6 +1010,12 @@ static int write_report(int who)
         if (mark[i].similar_of) {
             pf("Line" NB "%d says \"similarly\". It is line" NB "%d again.",
                i + 1, mark[i].similar_of);
+            comment();
+        }
+    for (int i = 0, k = 0; i < nlines; i++)
+        if (mark[i].cited[0] && !mark[i].dangling) {
+            pf("Line" NB "%d cites [%s]. %s", i + 1, mark[i].cited,
+               UNREAD[(h + (unsigned long)k++) % NUNREAD]);
             comment();
         }
 
@@ -1062,10 +1116,172 @@ static int letter(void)
 }
 
 /*
- * One program, three names. There are no flags. There are names:
- * referee, reviewer2, editor.
+ * The librarian reads no paper. It reads the citations in every paper
+ * it is given, and writes the citation index. A paper that cites
+ * another twice has cited it once. The h-index of the library is the
+ * largest h such that h of its papers are each cited at least h
+ * times. It is the exit code.
  */
-enum { EDITOR = 2 };
+#define MAX_PAPERS 1024
+#define MAX_CITES  4096
+
+static const char *shelf[MAX_PAPERS];
+static int nshelf;
+static char cite_from[MAX_CITES][64], cite_to[MAX_CITES][64];
+static int ncites;
+
+static int held(const char *p)
+{
+    for (int i = 0; i < nshelf; i++)
+        if (strcmp(shelf[i], p) == 0) return 1;
+    return 0;
+}
+
+static int cited_by(const char *p, char *out, size_t cap)
+{
+    int n = 0;
+    out[0] = '\0';
+    for (int i = 0; i < nshelf; i++)
+        for (int c = 0; c < ncites; c++)
+            if (strcmp(cite_to[c], p) == 0 && strcmp(cite_from[c], shelf[i]) == 0) {
+                size_t l = strlen(out);
+                snprintf(out + l, cap - l, "%s%s", n ? ", " : "", shelf[i]);
+                n++;
+            }
+    return n;
+}
+
+static int times_cited(const char *p)
+{
+    int n = 0;
+    for (int c = 0; c < ncites; c++)
+        if (strcmp(cite_to[c], p) == 0) n++;
+    return n;
+}
+
+static int by_count_then_name(const void *a, const void *b)
+{
+    const char *x = *(const char *const *)a, *y = *(const char *const *)b;
+    int cx = times_cited(x), cy = times_cited(y);
+    if (cx != cy) return cy - cx;
+    return strcmp(x, y);
+}
+
+static int by_name(const void *a, const void *b)
+{
+    return strcmp(*(const char *const *)a, *(const char *const *)b);
+}
+
+static int librarian(int argc, char **argv)
+{
+    for (int a = 1; a < argc && nshelf < MAX_PAPERS; a++) {
+        FILE *f = fopen(argv[a], "r");
+        if (!f) {
+            fprintf(stderr, "librarian: the paper did not arrive: %s\n", argv[a]);
+            continue;
+        }
+        const char *b = strrchr(argv[a], '/');
+        b = b ? b + 1 : argv[a];
+        shelf[nshelf++] = b;
+        char buf[4096];
+        while (fgets(buf, sizeof buf, f)) {
+            const char *at;
+            const Phrase *p = match(buf, &at);
+            if (!p || p->op != CITEFILE_ || ncites >= MAX_CITES) continue;
+            const char *s = at + strlen(p->text), *t = strchr(s, ']');
+            if (!t) continue;
+            size_t n = (size_t)(t - s);
+            if (n >= sizeof cite_to[0]) n = sizeof cite_to[0] - 1;
+            int dup = 0;
+            for (int c = 0; c < ncites; c++)
+                if (strncmp(cite_to[c], s, n) == 0 && cite_to[c][n] == '\0' &&
+                    strcmp(cite_from[c], b) == 0) dup = 1;
+            if (dup) continue;
+            memcpy(cite_to[ncites], s, n);
+            cite_to[ncites][n] = '\0';
+            snprintf(cite_from[ncites], sizeof cite_from[0], "%s", b);
+            ncites++;
+        }
+        fclose(f);
+    }
+    qsort(shelf, (size_t)nshelf, sizeof shelf[0], by_name);
+
+    /* every paper cited, held or not, once */
+    static const char *catalogue[MAX_CITES];
+    int nindex = 0, ncited = 0, nmissing = 0;
+    for (int c = 0; c < ncites; c++) {
+        int seen_before = 0;
+        for (int i = 0; i < nindex; i++)
+            if (strcmp(catalogue[i], cite_to[c]) == 0) seen_before = 1;
+        if (seen_before) continue;
+        catalogue[nindex++] = cite_to[c];
+        if (held(cite_to[c])) ncited++;
+        else nmissing++;
+    }
+    qsort(catalogue, (size_t)nindex, sizeof catalogue[0], by_count_then_name);
+
+    char list[4096];
+    int h_index = 0;
+    for (int i = 0, k = 0; i < nindex; i++) {
+        if (!held(catalogue[i])) continue;
+        k++;
+        if (times_cited(catalogue[i]) >= k) h_index = k;
+    }
+
+    sink = stderr;
+    fputs("LIBRARY -- CITATION INDEX\n", sink);
+    fputs("------------------------------------------------------------\n", sink);
+    fprintf(sink, "papers            %d\n", nshelf);
+    fprintf(sink, "citations         %d\n", ncites);
+    fprintf(sink, "papers cited      %d\n", ncited);
+    fprintf(sink, "not cited         %d\n", nshelf - ncited);
+    fprintf(sink, "not held          %d\n", nmissing);
+    fprintf(sink, "h-index           %d\n", h_index);
+    fputs("------------------------------------------------------------\n", sink);
+    if (nindex) {
+        fputs("cited  paper               cited by\n", sink);
+        for (int pass = 0; pass < 2; pass++)
+            for (int i = 0; i < nindex; i++) {
+                if (held(catalogue[i]) != !pass) continue;
+                int n = cited_by(catalogue[i], list, sizeof list);
+                fprintf(sink, "%5d  %-19s %s%s\n", n, catalogue[i], list,
+                        pass ? "  (not held)" : "");
+            }
+        fputs("------------------------------------------------------------\n", sink);
+    }
+    fputs("\n", sink);
+
+    char n1[32], n2[32];
+    number(n1, sizeof n1, ncites, 0);
+    number(n2, sizeof n2, nindex, 0);
+    pf("I have catalogued %d paper%s. They make %s citation%s, to %s paper%s.",
+       nshelf, nshelf == 1 ? "" : "s", n1, ncites == 1 ? "" : "s",
+       n2, nindex == 1 ? "" : "s");
+    if (nshelf - ncited)
+        pf(" Of the %d papers in the library, %d %s not cited.",
+           nshelf, nshelf - ncited, nshelf - ncited == 1 ? "is" : "are");
+    pend("");
+
+    for (int i = 0; i < nindex; i++)
+        if (!held(catalogue[i])) {
+            cited_by(catalogue[i], list, sizeof list);
+            pf("[%s] is cited by %s. The library does not hold it.", catalogue[i], list);
+            pend("");
+        }
+
+    pf("The h-index of the library is %d.", h_index);
+    pend("");
+    pf("I have counted the citations. I have not read the papers.");
+    pend("");
+
+    return h_index > 255 ? 255 : h_index;
+}
+
+/*
+ * One program, four names. There are no flags. There are names:
+ * referee, reviewer2, editor, librarian.
+ */
+enum { EDITOR = 2, LIBRARIAN = 3 };
 
 int main(int argc, char **argv)
 {
@@ -1073,12 +1289,16 @@ int main(int argc, char **argv)
     self = self ? self + 1 : argv[0];
     int who = strcmp(self, "reviewer2") == 0 ? REVIEWER_2
             : strcmp(self, "editor") == 0    ? EDITOR
+            : strcmp(self, "librarian") == 0 ? LIBRARIAN
             :                                  REFEREE_1;
 
     if (argc < 2) {
-        fprintf(stderr, "usage: %s manuscript.sheaf\n", self);
+        fprintf(stderr, "usage: %s manuscript.sheaf%s\n", self,
+                who == LIBRARIAN ? " ..." : "");
         return 4;
     }
+    if (who == LIBRARIAN)
+        return librarian(argc, argv);
     if (read_source(argv[1]) != 0) {
         fprintf(stderr, "%s: the manuscript did not arrive: %s\n", self, argv[1]);
         return 4;
@@ -1086,6 +1306,10 @@ int main(int argc, char **argv)
 
     mark = calloc((size_t)(nlines ? nlines : 1), sizeof *mark);
     if (!mark) return 4;
+
+    const char *slash = strrchr(argv[1], '/');
+    if (slash && (size_t)(slash - argv[1]) + 1 < sizeof dir)
+        memcpy(dir, argv[1], (size_t)(slash - argv[1]) + 1);
 
     while (step(NULL, read_line, NULL))
         if (lines_read >= BUDGET) { unfinished = 1; break; }

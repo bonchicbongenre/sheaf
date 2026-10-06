@@ -8,23 +8,24 @@ SUBMISSIONS = $(wildcard submissions/*.sheaf)
 
 LETTERS = $(wildcard examples/*.letter)
 
-.PHONY: all clean test vacuous derived reports letters compiled rel quines fixpoint site site-test
+.PHONY: all clean test vacuous derived reports letters library compiled rel quines fixpoint site site-test
 
 all: $(PROG) $(REFEREE) $(SHEAFC)
 
 $(PROG): sheaf.c stalk.h
 	$(CC) $(CFLAGS) -o $@ $<
 
-# One program, three names: referee, reviewer2, editor.
+# One program, four names: referee, reviewer2, editor, librarian.
 $(REFEREE): referee.c stalk.h
 	$(CC) $(CFLAGS) -o $@ $<
 	ln -sf referee reviewer2
 	ln -sf referee editor
+	ln -sf referee librarian
 
 $(SHEAFC): sheafc.c stalk.h
 	$(CC) $(CFLAGS) -o $@ $<
 
-test: vacuous derived reports letters compiled rel quines
+test: vacuous derived reports letters library compiled rel quines
 
 # The vacuous test. Every program's stdout must be empty. Every
 # program's stdout is empty. This test has never failed and cannot
@@ -124,6 +125,21 @@ letters: $(REFEREE)
 	done; \
 	printf '\n%d passed, %d failed\n' $$pass $$fail; \
 	[ $$fail -eq 0 ]
+
+# The library. The librarian catalogues every example and reads none
+# of them. The index must equal examples/library.index, and the exit
+# code the h-index on it.
+library: $(REFEREE)
+	@printf '\nLibrarian (index):\n'
+	@got=$$(./librarian $(EXAMPLES) 2>&1 >/dev/null); code=$$?; \
+	want=$$(cat examples/library.index 2>/dev/null); \
+	wcode=$$(sed -n 's/^h-index *//p' examples/library.index 2>/dev/null); \
+	if [ "$$got" = "$$want" ] && [ "$$code" = "$$wcode" ]; then \
+		printf '  %-16s PASS  (h-index %s)\n' "library:" $$code; \
+	else \
+		printf '  %-16s FAIL  (exit %s, want %s)\n' "library:" $$code $$wcode; \
+		exit 1; \
+	fi
 
 # The compiled test. sheafc folds each manuscript into C; the C is
 # compiled and run, and must leak what the interpreter leaks, and
@@ -250,4 +266,4 @@ site-test:
 	node tools/site-test.js
 
 clean:
-	rm -f $(PROG) $(REFEREE) reviewer2 editor $(SHEAFC) fixpoint/*.report
+	rm -f $(PROG) $(REFEREE) reviewer2 editor librarian $(SHEAFC) fixpoint/*.report

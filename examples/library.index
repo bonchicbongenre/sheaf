@@ -1,0 +1,28 @@
+LIBRARY -- CITATION INDEX
+------------------------------------------------------------
+papers            35
+citations         8
+papers cited      5
+not cited         30
+not held          1
+h-index           2
+------------------------------------------------------------
+cited  paper               cited by
+    2  fermat.sheaf        followup.sheaf, survey.sheaf
+    2  gauss.sheaf         followup.sheaf, survey.sheaf
+    1  collatz.sheaf       survey.sheaf
+    1  survey.sheaf        followup.sheaf
+    1  twoarcs.sheaf       survey.sheaf
+    1  in preparation      followup.sheaf  (not held)
+------------------------------------------------------------
+
+I have catalogued 35 papers. They make eight citations, to six
+papers. Of the 35 papers in the library, 30 are not cited.
+
+[in preparation] is cited by followup.sheaf. The library does not
+hold it.
+
+The h-index of the library is 2.
+
+I have counted the citations. I have not read the papers.
+
