@@ -73,6 +73,7 @@ The computation is the proof.
 | `by [paper]` | | CITE | Another paper is cited. It is not read. |
 | `retract` | | RETRACT | The paper is withdrawn. What it leaks from here is withdrawn with it. |
 | `Erratum to [paper].` | `Corrigendum to [paper].` | | First line only. The paper, corrected. |
+| `Response to the referee, on [paper].` | | | First line only. The paper, as revised. |
 | `QED` | | HALT | The proof is complete. |
 | `clearly` | | NOP | Obviously. Contributes nothing. |
 | `it is well known` | `TFAE` | NOP | Everyone knows this. Nobody cites it. |
@@ -99,7 +100,7 @@ Publish.
 QED.
 ```
 
-See `examples/` for 41 programs, including the seminar, the referee,
+See `examples/` for 42 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
@@ -109,7 +110,8 @@ Yoneda, abstract nonsense, a second case that is not similar, a
 proof by contradiction, a proof of everything, a survey, a follow-up
 to the survey, an erratum, an erratum to the erratum, Brouwer's fixed
 point theorem, retracted, Nash, who cites it, the sphere by the faces
-of a tetrahedron, and a cocycle condition nobody checked.
+of a tetrahedron, a cocycle condition nobody checked, and a response
+to the referee on Fermat.
 `submissions/` holds three more. They do not terminate. Only the
 referee reads them.
 
@@ -366,6 +368,39 @@ cited, so it does not know: "Line 4 cites [brouwer.sheaf]. I have it
 somewhere." The librarian knows: "brouwer.sheaf has been retracted.
 It is still cited, by nash.sheaf." A retracted paper still counts
 toward the h-index.
+
+## Responses to the Referee
+
+```
+Response to the referee, on [fermat.sheaf].
+
+We thank the referee for a careful reading.
+
+> Line 28 says this is zero. It is not zero.
+We respectfully disagree. It is zero.
+```
+
+A response is the paper it answers, revised by its own `Line N should
+read:` lines. A response with none is the paper unchanged: "I have
+read it again. It has not changed."
+
+A response quotes the report, one comment to a line after `> `, and
+answers it on the lines below. The referee reads the revision and
+weighs each quote against what it now finds. A comment that still
+stands is answered where it stands: "The authors respectfully
+disagree. I maintain it." Otherwise: "The response does not change
+this." A comment the referee no longer makes is not mentioned again.
+It is not said to be addressed, since a misquoted comment is not made
+either. The referee counts: "Of the four comments they quote, three
+still stand." Thanks are received: "The authors thank me."
+
+`examples/fermat-response.sheaf` answers the four comments on
+`fermat.sheaf`. Asked for a reference for "It is well known", it cites
+Wiles, and that comment no longer stands. The referee did not read
+Wiles either. Asked to show the step after "clearly", it adds a comma.
+Told that three hypotheses are open, it names them: "They are a, b and
+c. They do not exist." Told that this is not zero, it respectfully
+disagrees. Reject.
 
 ## Gluing
 
@@ -625,8 +660,8 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 41 examples, 18 are accepted, 9 need minor revision, 10 need
-major revision, and 4 are rejected. Among the accepted: "With two
+Of the 42 examples, 18 are accepted, 9 need minor revision, 10 need
+major revision, and 5 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
 
@@ -742,12 +777,12 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 44 reviews, 24 reach a fixed point by the third round. The
+Of the 45 reviews, 25 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 8 of
-them. All 24 recommend major revision.
+them. All 25 recommend major revision.
 
-In 22 of the 24, the reader was sent back by the words the referee
+In 23 of the 25, the reader was sent back by the words the referee
 used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.

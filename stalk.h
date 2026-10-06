@@ -102,19 +102,28 @@ static int  erratum_depth;
 static int  erratum_missing;                  /* and the last of them is not there */
 static int  corrections;                      /* lines the manuscript itself corrects */
 
+/*
+ * A response to the referee is the paper too, as revised by its own
+ * "Line N should read:" lines. With none, it is the paper unchanged.
+ */
+static int  responding;
+
+/* 1 an erratum, 2 a response to the referee, 0 neither; and the paper's name */
 static int erratum_heading(const char *ln, char *name, size_t cap)
 {
     const char *s = NULL;
+    int kind = 1;
     while (isspace((unsigned char)*ln)) ln++;
     if (strncasecmp(ln, "erratum to [", 12) == 0) s = ln + 12;
     else if (strncasecmp(ln, "corrigendum to [", 16) == 0) s = ln + 16;
+    else if (strncasecmp(ln, "response to the referee, on [", 29) == 0) { s = ln + 29; kind = 2; }
     const char *t = s ? strchr(s, ']') : NULL;
     if (!t) return 0;
     size_t n = (size_t)(t - s);
     if (n >= cap) n = cap - 1;
     memcpy(name, s, n);
     name[n] = '\0';
-    return 1;
+    return kind;
 }
 
 /* "Line 13 should read: ...": 13, and the text. 0 if it is not a correction. */
@@ -161,8 +170,10 @@ static int read_source(const char *file)
     const char *slash = strrchr(file, '/');
     int dir = slash ? (int)(slash - file) + 1 : 0;
 
+    int kind;
     while (n > 0 && erratum_depth < ERRATA_DEPTH && !erratum_missing &&
-           erratum_heading(v[0], name, sizeof name)) {
+           (kind = erratum_heading(v[0], name, sizeof name))) {
+        if (erratum_depth == 0 && kind == 2) responding = 1;
         snprintf(erratum_chain[erratum_depth++], sizeof erratum_chain[0], "%s", name);
         snprintf(path, sizeof path, "%.*s%s", dir, file, name);
         char **t;

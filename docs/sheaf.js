@@ -112,14 +112,16 @@ function splitLines(text) {
  */
 var ERRATA_DEPTH = 8;
 
+/* { name, kind: 1 an erratum, 2 a response to the referee }, or null */
 function erratumHeading(ln) {
-  var s = 0, r;
+  var s = 0, r, kind = 1;
   while (isspace(ln[s])) s++;
   if (ncaseeq(ln, s, 'erratum to [')) r = s + 12;
   else if (ncaseeq(ln, s, 'corrigendum to [')) r = s + 16;
+  else if (ncaseeq(ln, s, 'response to the referee, on [')) { r = s + 29; kind = 2; }
   else return null;
   var t = ln.indexOf(']', r);
-  return t < 0 ? null : ln.slice(r, Math.min(t, r + 63));
+  return t < 0 ? null : { name: ln.slice(r, Math.min(t, r + 63)), kind: kind };
 }
 
 function correction(ln) {
@@ -144,9 +146,11 @@ function asCorrected(s) {
 }
 
 function readSource(source, library) {
-  var v = splitLines(source), chain = [], missing = false, corrections = 0, name;
+  var v = splitLines(source), chain = [], missing = false, corrections = 0, responding = false, hd, name;
   while (v.length > 0 && chain.length < ERRATA_DEPTH && !missing &&
-         (name = erratumHeading(v[0])) !== null) {
+         (hd = erratumHeading(v[0])) !== null) {
+    name = hd.name;
+    if (chain.length === 0 && hd.kind === 2) responding = true;
     chain.push(name);
     var t = [];
     if (has(library, name)) t = splitLines(library[name]);
@@ -160,7 +164,8 @@ function readSource(source, library) {
     }
     v = t;
   }
-  return { lines: v.slice(0, MAX_LINES), chain: chain, missing: missing, corrections: corrections };
+  return { lines: v.slice(0, MAX_LINES), chain: chain, missing: missing, corrections: corrections,
+           responding: responding };
 }
 
 /* ---- the machine ---- */
@@ -172,6 +177,7 @@ function Machine(source, reader, library) {
   m.erratumChain = src.chain;
   m.erratumMissing = src.missing;
   m.corrections = src.corrections;
+  m.responding = src.responding;   /* a response to the referee: the paper, as revised */
   m.retracted = false;   /* what it has leaked stays leaked */
   m.lines = lines;
   m.nlines = lines.length;
@@ -1029,9 +1035,46 @@ function review(source, name, library) {
   var base = name.slice(name.lastIndexOf('/') + 1);
   var h = fnv(base);
 
+  /*
+   * A response quotes the report, a comment to a line after "> ", and
+   * answers it below. Each quote is weighed against what the referee
+   * now finds: still there, it is answered; gone, it was addressed.
+   */
+  var quotes = [], disagrees = [], thanked = 0, dry = false, said = [];
+  function normalize(s) {
+    return s.split(NB).join(' ').replace(/[ \t\n\v\f\r]+/g, ' ').replace(/^ /, '').replace(/ $/, '');
+  }
+  if (M.responding) {
+    var rl = splitLines(source), cur = -1;
+    for (i = 0; i < rl.length; i++) {
+      var z0 = 0;
+      while (isspace(rl[i][z0])) z0++;
+      var rs = rl[i].slice(z0);
+      if (i > 0 && rs[0] === '>' && quotes.length < 64) {
+        quotes.push(normalize(rs.slice(1)));
+        disagrees.push(0);
+        cur = quotes.length - 1;
+      } else if (rs) {
+        if (cistrstr(rs, 'we thank the referee') >= 0) thanked = 1;
+        if (cur >= 0 && cistrstr(rs, 'disagree') >= 0) disagrees[cur] = 1;
+      }
+    }
+  }
+  function addressed() {
+    return quotes.filter(function (q) { return said.indexOf(q) < 0; }).length;
+  }
+
   /* the referee and Reviewer 2 write from the same reading */
   function write(who) {
   var decision = who === REFEREE_1 ? decision1 : Math.min(decision1 + 1, REJECT);
+
+  if (quotes.length && !dry) {
+    /* first, what the report will say, so the response can be weighed */
+    said = [];
+    dry = true;
+    write(who);
+    dry = false;
+  }
 
   /* ---- the form ---- */
 
@@ -1060,8 +1103,9 @@ function review(source, name, library) {
                              : 'EDITORIAL OFFICE -- REPORT OF REVIEWER 2\n', dash);
   out.push('manuscript        ' + base + '\n');
   if (M.erratumChain.length)
-    out.push('erratum to        ' + M.erratumChain[0] + ', ' + M.corrections + ' line' +
-             (M.corrections === 1 ? '' : 's') + ' corrected\n');
+    out.push((M.responding ? 'response to       report on ' : 'erratum to        ') +
+             M.erratumChain[0] + ', ' + M.corrections + ' line' + (M.corrections === 1 ? '' : 's') +
+             ' corrected\n');
   out.push('lines             ' + nl + '\n');
   if (unfinished) out.push('steps             ' + steps + ' (reading stopped)\n');
   else if (emptySteps) out.push('steps             ' + steps + ' (' + emptySteps + ' of them empty)\n');
@@ -1098,7 +1142,21 @@ function review(source, name, library) {
     out.push(txt + '\n\n');
     para = '';
   }
-  function comment() { commentNo++; pend(commentNo + '. '); }
+  function comment() {
+    if (quotes.length) {
+      var t = normalize(para);
+      if (dry) { if (said.length < 256) said.push(t); }
+      else
+        for (var q = 0; q < quotes.length; q++)
+          if (quotes[q] === t) {
+            pf(disagrees[q] ? ' The authors respectfully disagree. I maintain it.'
+                            : ' The response does not change this.');
+            break;
+          }
+    }
+    commentNo++;
+    pend(commentNo + '. ');
+  }
 
   var opening = '';
   for (i = 0; i < nl; i++) {
@@ -1135,7 +1193,19 @@ function review(source, name, library) {
   pend('');
 
   var chain = M.erratumChain;
-  if (chain.length) {
+  if (chain.length && M.responding) {
+    pf('The manuscript is a response to my report on [' + chain[0] + '].');
+    if (thanked) pf(' The authors thank me.');
+    if (M.erratumMissing) pf(' I have read the corrections alone.');
+    else if (M.corrections) pf(' I have read it again, as revised.');
+    else pf(' I have read it again. It has not changed.');
+    if (quotes.length) {
+      var ks = quotes.length - addressed();
+      pf(' Of the ' + number(quotes.length, false) + ' comment' + (quotes.length === 1 ? '' : 's') +
+         ' they quote, ' + (ks ? number(ks, false) : 'none') + ' still stand' + (ks <= 1 ? 's' : '') + '.');
+    }
+    pend('');
+  } else if (chain.length) {
     pf('The manuscript is an erratum to [' + chain[0] + ']');
     for (i = 1; i < chain.length; i++) pf(', which is an erratum to [' + chain[i] + ']');
     if (M.erratumMissing) pf('. I have read the corrections alone.');
@@ -1229,7 +1299,8 @@ function review(source, name, library) {
     }
   if (M.erratumMissing) {
     var lastPaper = chain[chain.length - 1];
-    pf('The erratum corrects [' + lastPaper + ']. There is no [' + lastPaper + '].');
+    pf('The ' + (M.responding ? 'response answers a report on' : 'erratum corrects') + ' [' + lastPaper +
+       ']. There is no [' + lastPaper + '].');
     comment();
   }
 
@@ -1402,6 +1473,7 @@ function librarian(papers) {
     shelf.push(b);
     var lines = pp.text.split('\n'), target = erratumHeading(lines[0]);
     if (target !== null) { corrects[b] = target; return; }   /* an erratum's lines are not its paper */
+    /* (a response to the referee is read the same way) */
     lines.forEach(function (ln) {
       var r = matchLine(ln);
       if (r.p && r.p.op === OP.RETRACT && pulled.indexOf(b) < 0) pulled.push(b);
@@ -1469,7 +1541,7 @@ function librarian(papers) {
            'papers cited      ' + ncited + '\n',
            'not cited         ' + (shelf.length - ncited) + '\n',
            'not held          ' + nmissing + '\n',
-           'errata            ' + Object.keys(corrects).length + '\n',
+           'errata            ' + Object.keys(corrects).filter(function (s) { return corrects[s].kind === 1; }).length + '\n',
            'retracted         ' + pulled.length + '\n',
            'h-index           ' + hIndex + '\n', dash);
   if (cat.length) {
@@ -1500,7 +1572,9 @@ function librarian(papers) {
     pend();
   });
   shelf.forEach(function (s) {
-    if (has(corrects, s)) para += (para ? ' ' : '') + s + ' corrects ' + corrects[s] + '.';
+    if (has(corrects, s))
+      para += (para ? ' ' : '') + s + (corrects[s].kind === 2 ? ' answers the referee on ' : ' corrects ') +
+              corrects[s].name + '.';
   });
   if (para) pend();
   shelf.forEach(function (s) {

@@ -599,13 +599,93 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     }
 }
 
+/*
+ * A response to the referee quotes the report, a comment to a line
+ * after "> ", and answers it on the lines below. The referee weighs
+ * each quote against what it now finds: a comment still there is
+ * answered; a comment gone has been addressed.
+ */
+#define MAX_QUOTES 64
+#define MAX_SAID   256
+
+static char *quote[MAX_QUOTES];
+static int disagrees[MAX_QUOTES];
+static int nquotes, thanked;
+static int dry;                   /* writing the report only to learn what it says */
+static char *said[MAX_SAID];
+static int nsaid;
+
+/* NB to a space, each run of spaces to one, no space at either end */
+static void normalize(char *s)
+{
+    char *w = s;
+    for (const char *r = s; *r; r++) {
+        char c = *r == '\001' ? ' ' : *r;
+        if (isspace((unsigned char)c) && (w == s || w[-1] == ' ')) continue;
+        *w++ = isspace((unsigned char)c) ? ' ' : c;
+    }
+    while (w > s && w[-1] == ' ') w--;
+    *w = '\0';
+}
+
+static void read_response(const char *file)
+{
+    char **v;
+    int n = read_lines(file, &v), cur = -1;
+    for (int i = 0; i < n; i++) {
+        const char *s = v[i];
+        while (isspace((unsigned char)*s)) s++;
+        if (i > 0 && *s == '>' && nquotes < MAX_QUOTES) {
+            quote[nquotes] = strdup(s + 1);
+            if (quote[nquotes]) normalize(quote[nquotes]);
+            cur = nquotes++;
+        } else if (*s) {
+            if (cistrstr(s, "we thank the referee")) thanked = 1;
+            if (cur >= 0 && cistrstr(s, "disagree")) disagrees[cur] = 1;
+        }
+        free(v[i]);
+    }
+    if (n >= 0) free(v);
+}
+
 static int comment_no;
 
 static void comment(void)
 {
+    if (nquotes) {
+        char *t = strdup(para);
+        if (t) {
+            normalize(t);
+            if (dry && nsaid < MAX_SAID) {
+                said[nsaid++] = t;
+                t = NULL;
+            } else if (!dry) {
+                for (int q = 0; q < nquotes; q++)
+                    if (quote[q] && strcmp(quote[q], t) == 0) {
+                        pf(disagrees[q] ? " The authors respectfully disagree. I maintain it."
+                                        : " The response does not change this.");
+                        break;
+                    }
+            }
+            free(t);
+        }
+    }
     char lead[16];
     snprintf(lead, sizeof lead, "%d. ", ++comment_no);
     pend(lead);
+}
+
+/* of the comments quoted, how many the report no longer makes (or never made) */
+static int addressed(void)
+{
+    int k = 0;
+    for (int q = 0; q < nquotes; q++) {
+        int found = 0;
+        for (int i = 0; i < nsaid && !found; i++)
+            if (quote[q] && strcmp(quote[q], said[i]) == 0) found = 1;
+        if (!found) k++;
+    }
+    return k;
 }
 
 static unsigned long fnv(const char *s)
@@ -815,6 +895,24 @@ static int write_report(int who)
     int decision = who == REFEREE_1 ? decision1
                  : (decision1 < REJECT ? decision1 + 1 : REJECT);
 
+    if (nquotes && !dry) {
+        /* first, what the report will say, so the response can be weighed */
+        char *buf = NULL;
+        size_t len = 0;
+        FILE *save = sink;
+        for (int i = 0; i < nsaid; i++) free(said[i]);
+        nsaid = 0;
+        sink = open_memstream(&buf, &len);
+        if (sink) {
+            dry = 1;
+            write_report(who);
+            dry = 0;
+            fclose(sink);
+        }
+        free(buf);
+        sink = save;
+    }
+
     comment_no = 0;
 
     /* ---- the form ---- */
@@ -842,7 +940,10 @@ static int write_report(int who)
                            : "EDITORIAL OFFICE -- REPORT OF REVIEWER 2\n", sink);
     fprintf(sink, "------------------------------------------------------------\n");
     fprintf(sink, "manuscript        %s\n", name);
-    if (erratum_depth)
+    if (erratum_depth && responding)
+        fprintf(sink, "response to       report on %s, %d line%s corrected\n", erratum_chain[0],
+                corrections, corrections == 1 ? "" : "s");
+    else if (erratum_depth)
         fprintf(sink, "erratum to        %s, %d line%s corrected\n", erratum_chain[0],
                 corrections, corrections == 1 ? "" : "s");
     fprintf(sink, "lines             %d\n", nlines);
@@ -916,7 +1017,26 @@ static int write_report(int who)
     pf("%s", who == REFEREE_1 ? WORN[(h / NFIELD) % NWORN] : WORN2[(h / NFIELD) % NWORN2]);
     pend("");
 
-    if (erratum_depth) {
+    if (erratum_depth && responding) {
+        pf("The manuscript is a response to my report on [%s].", erratum_chain[0]);
+        if (thanked)
+            pf(" The authors thank me.");
+        if (erratum_missing)
+            pf(" I have read the corrections alone.");
+        else if (corrections)
+            pf(" I have read it again, as revised.");
+        else
+            pf(" I have read it again. It has not changed.");
+        if (nquotes) {
+            int k = nquotes - addressed();
+            char nq[32], nk[32];
+            number(nq, sizeof nq, nquotes, 0);
+            number(nk, sizeof nk, k, 0);
+            pf(" Of the %s comment%s they quote, %s still stand%s.", nq,
+               nquotes == 1 ? "" : "s", k ? nk : "none", k == 1 || !k ? "s" : "");
+        }
+        pend("");
+    } else if (erratum_depth) {
         pf("The manuscript is an erratum to [%s]", erratum_chain[0]);
         for (int i = 1; i < erratum_depth; i++)
             pf(", which is an erratum to [%s]", erratum_chain[i]);
@@ -990,7 +1110,8 @@ static int write_report(int who)
         }
     if (erratum_missing) {
         const char *last = erratum_chain[erratum_depth - 1];
-        pf("The erratum corrects [%s]. There is no [%s].", last, last);
+        pf("The %s [%s]. There is no [%s].",
+           responding ? "response answers a report on" : "erratum corrects", last, last);
         comment();
     }
 
@@ -1224,8 +1345,9 @@ static const char *shelf[MAX_PAPERS];
 static int nshelf;
 static char cite_from[MAX_CITES][64], cite_to[MAX_CITES][64];
 static int ncites;
-static char corrects_from[MAX_PAPERS][64], corrects_to[MAX_PAPERS][64];   /* errata */
-static int ncorrects;
+static char corrects_from[MAX_PAPERS][64], corrects_to[MAX_PAPERS][64];   /* errata, responses */
+static int corrects_kind[MAX_PAPERS];
+static int ncorrects, nerrata;
 static const char *pulled[MAX_PAPERS];                                    /* retracted */
 static int npulled;
 
@@ -1296,10 +1418,12 @@ static int librarian(int argc, char **argv)
         char buf[4096], target[64];
         int first = 1, erratum = 0, retracts = 0;
         while (fgets(buf, sizeof buf, f)) {
-            if (first && erratum_heading(buf, target, sizeof target)) {
+            int kind = first ? erratum_heading(buf, target, sizeof target) : 0;
+            if (kind) {
                 snprintf(corrects_from[ncorrects], sizeof corrects_from[0], "%s", b);
                 snprintf(corrects_to[ncorrects], sizeof corrects_to[0], "%s", target);
-                ncorrects++;
+                corrects_kind[ncorrects++] = kind;
+                if (kind == 1) nerrata++;
                 erratum = 1;
             }
             first = 0;
@@ -1359,7 +1483,7 @@ static int librarian(int argc, char **argv)
     fprintf(sink, "papers cited      %d\n", ncited);
     fprintf(sink, "not cited         %d\n", nshelf - ncited);
     fprintf(sink, "not held          %d\n", nmissing);
-    fprintf(sink, "errata            %d\n", ncorrects);
+    fprintf(sink, "errata            %d\n", nerrata);
     fprintf(sink, "retracted         %d\n", npulled);
     fprintf(sink, "h-index           %d\n", h_index);
     fputs("------------------------------------------------------------\n", sink);
@@ -1397,7 +1521,8 @@ static int librarian(int argc, char **argv)
     for (int i = 0; i < nshelf; i++)
         for (int c = 0; c < ncorrects; c++)
             if (strcmp(corrects_from[c], shelf[i]) == 0)
-                pf("%s%s corrects %s.", plen ? " " : "", shelf[i], corrects_to[c]);
+                pf("%s%s %s %s.", plen ? " " : "", shelf[i],
+                   corrects_kind[c] == 2 ? "answers the referee on" : "corrects", corrects_to[c]);
     if (plen) pend("");
 
     for (int i = 0; i < nshelf; i++)
@@ -1450,6 +1575,8 @@ int main(int argc, char **argv)
     const char *slash = strrchr(argv[1], '/');
     if (slash && (size_t)(slash - argv[1]) + 1 < sizeof dir)
         memcpy(dir, argv[1], (size_t)(slash - argv[1]) + 1);
+    if (responding)
+        read_response(argv[1]);
 
     while (step(NULL, read_line, NULL))
         if (lines_read >= BUDGET) { unfinished = 1; break; }

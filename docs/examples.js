@@ -61,6 +61,11 @@ var SHEAF_EXAMPLES = [
   "text": "Exercise 3.7.12. Left to the reader.\n\nSuppose 2.\nSuppose 3.\nTensor.\nSuppose 1.\nDirect sum.\nPublish.\n\nHint: the answer is 7.\n\nQED.\n"
  },
  {
+  "name": "fermat-response.sheaf",
+  "dir": "examples",
+  "text": "Response to the referee, on [fermat.sheaf].\n\nWe thank the referee for a careful reading.\n\n> Line 28 says this is zero. It is not zero.\nWe respectfully disagree. It is zero.\n\n> Three hypotheses are introduced and not discharged. They are still open at QED.\nThey are a, b and c. They do not exist.\n\n> Line 1 is well known. Please give a reference.\nLine 1 should read: By [wiles.sheaf], for n > 2, no three positive integers\n\n> Line 28 says \"clearly\". Please show the step.\nLine 28 should read: Clearly, this is zero.\n"
+ },
+ {
   "name": "fermat.sheaf",
   "dir": "examples",
   "text": "It is well known that for n > 2, no three positive integers\na, b, c satisfy a^n + b^n = c^n.\n\nSuppose 3.\nSuppose 4.\nSuppose 5.\n\nRecall.\nRecall.\nTensor.\n\nBy duality.\n\nRecall.\nRecall.\nTensor.\n\nDirect sum.\n\nBy duality.\n\nRecall.\nRecall.\nTensor.\n\nRestrict.\n\nClearly this is zero.\nPublish.\nQED.\n"
