@@ -61,6 +61,9 @@ The computation is the proof.
 | `cover` | | COVER | A new cover, by the opens named on the line: U1, U2, ... |
 | `the transition` | | TRANS | The transition on two opens: an integer. |
 | `by gluing` | | GLUE | 1 if the transitions are a coboundary. Otherwise 0, and the class leaks. |
+| `the triple overlap` | | TRIPLE | The three opens named on the line meet: a triangle in the nerve. |
+| `one checks the cocycle condition` | | NOP | One does not. The referee does. |
+| `sheafify` | `sheafification` | NOP | The sheafification of a sheaf is the sheaf. |
 | `left to the reader` | | READ | The reader gives a number. Or nothing. |
 | `by yoneda` | | NOP | An object is its observations. None are kept. |
 | `by abstract nonsense` | | CLEAR | Every open hypothesis, discharged at once. |
@@ -96,7 +99,7 @@ Publish.
 QED.
 ```
 
-See `examples/` for 39 programs, including the seminar, the referee,
+See `examples/` for 41 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
@@ -105,8 +108,10 @@ lemma used twice, the reader's square, a stopwatch, the only quine,
 Yoneda, abstract nonsense, a second case that is not similar, a
 proof by contradiction, a proof of everything, a survey, a follow-up
 to the survey, an erratum, an erratum to the erratum, Brouwer's fixed
-point theorem, retracted, and Nash, who cites it. `submissions/` holds
-three more. They do not terminate. Only the referee reads them.
+point theorem, retracted, Nash, who cites it, the sphere by the faces
+of a tetrahedron, and a cocycle condition nobody checked.
+`submissions/` holds three more. They do not terminate. Only the
+referee reads them.
 
 ## Derived Functors
 
@@ -400,7 +405,48 @@ circle has no hole. State a transition on each piece and the hole is
 back. `examples/twoarcs.sheaf` does both. Three arcs are the fewest
 that see the hole without being told.
 
-The nerve is a graph. Triple overlaps are not seen.
+## Triple Overlaps
+
+```
+The triple overlap of U1, U2 and U3 is not empty.
+One checks the cocycle condition.
+```
+
+A triple overlap, declared, is a triangle in the nerve. It implies its
+three overlaps, and an overlap whose transition is not stated has
+transition 0. The transitions around a triangle must sum to zero: the
+cocycle condition. If they do not, they are not a cocycle, `By
+gluing.` pushes 0, and this leaks instead:
+
+```
+H^1(U,Z): not a cocycle on U1, U2 and U3; the sum is 1
+```
+
+If they do, a cycle that bounds a triangle no longer counts. H^1 is
+free in degree 1, and its rank is the graph's b1 less the rank of the
+triangles.
+
+"One checks the cocycle condition." is what a paper says when nobody
+did. In sheaf it does nothing. The referee checks it.
+`examples/cocycle.sheaf` declares that the circle's three arcs all
+meet at one point. Near that point all three branches of the
+logarithm are defined, so the transitions would have to sum to zero
+there, and they sum to one turn. "Line 8 says one checks the cocycle
+condition. One did not. On U1, U2 and U3 the transitions sum to 1."
+Reject. Where no triple overlap is declared, the referee says so:
+"There is no triple overlap, so it holds vacuously."
+
+`examples/sphere.sheaf` covers the sphere by the four faces of a
+tetrahedron. The nerve is the tetrahedron's surface: six overlaps,
+four triple overlaps, and no point in all four. The graph has three
+cycles, and the four triangles bound them all. Every cocycle on the
+sphere is a coboundary. The cocycle condition holds, the sections
+glue, and the referee accepts.
+
+`Sheafify.` Sheafification is left adjoint to the inclusion of sheaves
+into presheaves, and on a sheaf it is the identity. Every program is
+already a sheaf. The step is empty, and the referee says so: "Line 16
+sheafifies. The manuscript was already a sheaf."
 
 ## The Reader
 
@@ -532,6 +578,7 @@ The codes:
 | D | A citation names a heading, or a paper, that is not there. | major |
 | X | The citations go round. The argument is circular. | major |
 | K | It says contradiction. Nothing contradicts. | major |
+| G | Transitions are glued that are not a cocycle. | major |
 | U | A hypothesis is used that was never introduced. The stack was empty. | major |
 | O | Hypotheses are still open at QED. | major |
 | L | A lemma is never cited, so its proof was not read. | minor |
@@ -578,8 +625,8 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 39 examples, 17 are accepted, 9 need minor revision, 10 need
-major revision, and 3 are rejected. Among the accepted: "With two
+Of the 41 examples, 18 are accepted, 9 need minor revision, 10 need
+major revision, and 4 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
 
@@ -695,12 +742,12 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 42 reviews, 22 reach a fixed point by the third round. The
+Of the 44 reviews, 24 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 8 of
-them. All 22 recommend major revision.
+them. All 24 recommend major revision.
 
-In 20 of the 22, the reader was sent back by the words the referee
+In 22 of the 24, the reader was sent back by the words the referee
 used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.

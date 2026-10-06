@@ -12,7 +12,7 @@
 'use strict';
 
 var STACK_CAP = 1024, MEM_SIZE = 256, MAX_LINES = 65536;
-var NOWHERE = -1, MAX_LABELS = 4096, MAX_OPENS = 64, MAX_OVERLAPS = 256;
+var NOWHERE = -1, MAX_LABELS = 4096, MAX_OPENS = 64, MAX_OVERLAPS = 256, MAX_TRIPLES = 256;
 var I64MAX = (1n << 63n) - 1n, I64MIN = -(1n << 63n);
 
 var OP = {
@@ -20,7 +20,8 @@ var OP = {
   LOAD: 9, STORE: 10, EMIT: 11, PRINT: 12, JMP: 13, JZ: 14, JNZ: 15,
   HALT: 16, NOP: 17, CALL: 18, RET: 19, LOOP: 20, REPEAT: 21,
   COVER: 22, TRANS: 23, GLUE: 24, READ: 25,
-  YONEDA: 26, NONSENSE: 27, SIMILAR: 28, ASSUME: 29, CONTRA: 30, CITEFILE: 31, RETRACT: 32
+  YONEDA: 26, NONSENSE: 27, SIMILAR: 28, ASSUME: 29, CONTRA: 30, CITEFILE: 31, RETRACT: 32,
+  TRIPLE: 33, COCYCLE: 34, SHEAFIFY: 35
 };
 
 /* the phrase table, in the C order: the order breaks ties */
@@ -36,6 +37,8 @@ var PH = [
   ['by claim', OP.CALL, 1], ['by theorem', OP.CALL, 1], ['this proves the', OP.RET, 0],
   ['by induction', OP.LOOP, 0], ['this completes the induction', OP.REPEAT, 0],
   ['cover', OP.COVER, 0], ['the transition', OP.TRANS, 0], ['by gluing', OP.GLUE, 0],
+  ['the triple overlap', OP.TRIPLE, 0], ['one checks the cocycle condition', OP.COCYCLE, 0],
+  ['sheafify', OP.SHEAFIFY, 0], ['sheafification', OP.SHEAFIFY, 0],
   ['left to the reader', OP.READ, 0],
   ['by yoneda', OP.YONEDA, 0], ['by abstract nonsense', OP.NONSENSE, 0], ['similarly', OP.SIMILAR, 0],
   ['assume for contradiction', OP.ASSUME, 0], ['contradiction', OP.CONTRA, 0],
@@ -182,7 +185,8 @@ function Machine(source, reader, library) {
   m.skipTo = [];
   m.loopHead = [];
   m.opens = [];
-  m.ovA = []; m.ovB = []; m.ovC = [];
+  m.ovA = []; m.ovB = []; m.ovC = []; m.ovImplied = [];
+  m.triA = []; m.triB = []; m.triC = [];
   m.reader = reader;     /* a string the reader gives, or null */
   m.readAt = 0;
   m.lastLine = NOWHERE;  /* what "Similarly." performs again */
@@ -322,7 +326,7 @@ function transitionValue(s, i) {
 }
 
 /* the class of an integer 1-cochain on a graph, in H^1(graph; Z) = Z^b1 */
-function cechH1(n, m, a, b, c) {
+function cechH1(n, m, a, b, c, treeOut) {
   var seen = [], tree = [], f = [], cls = [], i;
   for (i = 0; i < n; i++) { seen.push(false); f.push(0n); }
   for (i = 0; i < m; i++) tree.push(false);
@@ -344,8 +348,92 @@ function cechH1(n, m, a, b, c) {
   }
   for (var k = 0; k < m; k++)
     if (!tree[k]) cls.push(wrap64(f[a[k]] + c[k] - f[b[k]]));
+  if (treeOut) for (k = 0; k < m; k++) treeOut.push(tree[k]);
   return cls;
 }
+
+/* the first overlap of x and y, and which way round it was stated */
+function edgeBetween(a, b, x, y) {
+  for (var e = 0; e < a.length; e++) {
+    if (a[e] === x && b[e] === y) return { e: e, sign: 1 };
+    if (a[e] === y && b[e] === x) return { e: e, sign: -1 };
+  }
+  return null;
+}
+
+/* the sum of the transitions around a triple overlap */
+Machine.prototype.around = function (t) {
+  var m = this, v = [m.triA[t], m.triB[t], m.triC[t], m.triA[t]], s = 0n;
+  for (var i = 0; i < 3; i++) {
+    var r = edgeBetween(m.ovA, m.ovB, v[i], v[i + 1]);
+    if (r) s = wrap64(r.sign > 0 ? s + m.ovC[r.e] : s - m.ovC[r.e]);
+  }
+  return s;
+};
+
+/* the first triple overlap where the cocycle condition fails */
+Machine.prototype.cocycleFails = function () {
+  for (var t = 0; t < this.triA.length; t++) {
+    var s = this.around(t);
+    if (s !== 0n) return { t: t, sum: s };
+  }
+  return null;
+};
+
+Machine.prototype.tripleNamed = function (t) {
+  return this.opens[this.triA[t]] + ', ' + this.opens[this.triB[t]] + ' and ' + this.opens[this.triC[t]];
+};
+
+function gcd(x, y) {
+  x = Math.abs(x); y = Math.abs(y);
+  while (y) { var t = x % y; x = y; y = t; }
+  return x;
+}
+
+/*
+ * H^1 of the nerve with its triangles filled: the cycles of the graph,
+ * less those that bound. Returns { rank, cls (on the cycles left), glued }.
+ */
+Machine.prototype.cechH1Filled = function () {
+  var m = this, tree = [];
+  var cls = cechH1(m.opens.length, m.ovA.length, m.ovA, m.ovB, m.ovC, tree);
+  var b1 = cls.length, glued = cls.every(function (x) { return x === 0n; }) ? 1 : 0;
+  var col = [], k = 0, e, j;
+  for (e = 0; e < m.ovA.length; e++) col.push(tree[e] ? NOWHERE : k++);
+
+  var rows = [], prow = [], pcol = [], pivot = [];
+  for (j = 0; j < b1; j++) pivot.push(false);
+  if (b1 > 0)
+    for (var t = 0; t < m.triA.length; t++) {
+      var r = [];
+      for (j = 0; j < b1; j++) r.push(0);
+      var v = [m.triA[t], m.triB[t], m.triC[t], m.triA[t]];
+      for (var i = 0; i < 3; i++) {
+        var w = edgeBetween(m.ovA, m.ovB, v[i], v[i + 1]);
+        if (w && col[w.e] !== NOWHERE) r[col[w.e]] += w.sign;
+      }
+      for (var q = 0; q < prow.length; q++) {
+        var p = rows[prow[q]], fr = r[pcol[q]], fp = p[pcol[q]];
+        if (!fr) continue;
+        var g = 0;
+        for (j = 0; j < b1; j++) { r[j] = r[j] * fp - p[j] * fr; g = gcd(g, r[j]); }
+        if (g > 1) for (j = 0; j < b1; j++) r[j] = r[j] / g;
+      }
+      rows.push(r);
+      for (j = 0; j < b1; j++)
+        if (r[j]) { prow.push(t); pcol.push(j); pivot[j] = true; break; }
+    }
+  var out = [];
+  for (j = 0; j < b1; j++) if (!pivot[j]) out.push(cls[j]);
+  return { rank: out.length, cls: out, glued: glued };
+};
+
+/* a triple overlap implies its overlaps; a transition not stated is 0 */
+Machine.prototype.imply = function (x, y) {
+  var m = this;
+  if (edgeBetween(m.ovA, m.ovB, x, y) || m.ovA.length === MAX_OVERLAPS) return;
+  m.ovA.push(x); m.ovB.push(y); m.ovC.push(0n); m.ovImplied.push(true);
+};
 
 /* ---- one step ---- */
 
@@ -357,7 +445,8 @@ Machine.prototype.fresh = function (line) {
     topBefore: m.stk.length > 0 ? m.stk[m.stk.length - 1] : 0n,
     underflows: 0, gave: 0, given: 0n, next: 0, deferred: 0,
     target: NOWHERE, unresolved: 0, cite: '', glue: NOWHERE, b1: 0,
-    discharged: 0, repeat: null, repeatLine: NOWHERE, repeatDegree: -1, contra: 0, withdrawn: 0
+    discharged: 0, repeat: null, repeatLine: NOWHERE, repeatDegree: -1, contra: 0, withdrawn: 0,
+    cocycle: NOWHERE, where: '', sum: 0n
   };
 };
 
@@ -441,28 +530,63 @@ Machine.prototype.perform = function (line, e, derived, run) {
         break;
       case OP.COVER: {
         var s = 0, o;
-        m.opens = []; m.ovA = []; m.ovB = []; m.ovC = [];
+        m.opens = []; m.ovA = []; m.ovB = []; m.ovC = []; m.ovImplied = [];
+        m.triA = []; m.triB = []; m.triC = [];
         while ((o = nextOpen(ln, s))) { m.openNamed(o.name); s = o.end; }
         break;
       }
       case OP.TRANS: {
         var o1 = nextOpen(ln, 0), o2 = o1 ? nextOpen(ln, o1.end) : null;
-        if (o1 && o2 && m.ovA.length < MAX_OVERLAPS) {
+        if (o1 && o2) {
           var x = m.openNamed(o1.name), y = m.openNamed(o2.name);
-          if (x !== NOWHERE && y !== NOWHERE) {
-            m.ovA.push(x); m.ovB.push(y); m.ovC.push(transitionValue(ln, rest));
+          var e0 = x !== NOWHERE && y !== NOWHERE ? edgeBetween(m.ovA, m.ovB, x, y) : null;
+          if (e0 && m.ovImplied[e0.e]) {
+            /* the transition on an overlap a triple overlap implied */
+            m.ovA[e0.e] = x; m.ovB[e0.e] = y; m.ovC[e0.e] = transitionValue(ln, rest);
+            m.ovImplied[e0.e] = false;
+          } else if (x !== NOWHERE && y !== NOWHERE && m.ovA.length < MAX_OVERLAPS) {
+            m.ovA.push(x); m.ovB.push(y); m.ovC.push(transitionValue(ln, rest)); m.ovImplied.push(false);
           }
         }
         break;
       }
+      case OP.TRIPLE: {
+        var t1 = nextOpen(ln, 0), t2 = t1 ? nextOpen(ln, t1.end) : null, t3 = t2 ? nextOpen(ln, t2.end) : null;
+        if (t3 && m.triA.length < MAX_TRIPLES) {
+          var ti = m.openNamed(t1.name), tj = m.openNamed(t2.name), tk = m.openNamed(t3.name);
+          if (ti !== NOWHERE && tj !== NOWHERE && tk !== NOWHERE && ti !== tj && tj !== tk && ti !== tk) {
+            m.triA.push(ti); m.triB.push(tj); m.triC.push(tk);
+            m.imply(ti, tj); m.imply(tj, tk); m.imply(ti, tk);
+          }
+        }
+        break;
+      }
+      case OP.COCYCLE: {
+        /* one checks the cocycle condition. one does not. the referee does. */
+        var cf = m.cocycleFails();
+        e.cocycle = !m.triA.length ? 2 : cf ? 0 : 1;
+        if (cf) { e.where = m.tripleNamed(cf.t); e.sum = cf.sum; }
+        break;
+      }
+      case OP.SHEAFIFY:
+        /* the sheafification of a sheaf is the sheaf */
+        break;
       case OP.GLUE: {
-        var cls = cechH1(m.opens.length, m.ovA.length, m.ovA, m.ovB, m.ovC), glued = 1;
-        for (var q = 0; q < cls.length; q++) if (cls[q]) glued = 0;
+        var fail = m.cocycleFails(), glued, h1 = { rank: 0, cls: [] };
+        if (fail) {
+          glued = 0;
+          e.cocycle = 0; e.where = m.tripleNamed(fail.t); e.sum = fail.sum;
+        } else {
+          h1 = m.cechH1Filled();
+          glued = h1.glued;
+        }
         m.push(BigInt(glued));
-        e.glue = glued; e.b1 = cls.length;
+        e.glue = glued; e.b1 = h1.rank;
         if (!glued && m.retracted) e.withdrawn = 1;
+        else if (!glued && derived && fail)
+          derived.push('H^1(U,Z): not a cocycle on ' + e.where + '; the sum is ' + fail.sum + '\n');
         else if (!glued && derived)
-          derived.push('H^1(U,Z) = Z^' + cls.length + '; the class is (' + cls.join(', ') + ')\n');
+          derived.push('H^1(U,Z) = Z^' + h1.rank + '; the class is (' + h1.cls.join(', ') + ')\n');
         break;
       }
       case OP.READ: {
@@ -484,6 +608,7 @@ Machine.prototype.perform = function (line, e, derived, run) {
           e.glue = again.glue; e.b1 = again.b1; e.discharged = again.discharged;
           e.contra = again.contra;
           e.withdrawn = again.withdrawn;
+          e.cocycle = again.cocycle; e.sum = again.sum; e.where = again.where;
         }
         break;
       case OP.ASSUME:
@@ -603,8 +728,10 @@ function fnv(s) {
   return h >>> 0;
 }
 
-/* a step that does nothing: "clearly", and a citation */
-function inert(op) { return op === OP.NOP || op === OP.CITEFILE; }
+/* a step that does nothing: "clearly", a citation, a check one says one makes, sheafifying a sheaf */
+function inert(op) {
+  return op === OP.NOP || op === OP.CITEFILE || op === OP.COCYCLE || op === OP.SHEAFIFY;
+}
 
 /* on a paper cited, which nobody here has read */
 var UNREAD = [
@@ -645,7 +772,8 @@ function review(source, name, library) {
     mark.push({ seen: 0, prose: 0, underflow: 0, code: '', falseClaim: 0, op: 0, phrase: '',
                 target: 0, sent: 0, word: '', claim: '', denial: '', cite: '',
                 dangling: 0, danglingOp: 0, called: 0, yoneda: 0, discharged: 0, similarOf: 0,
-                noContra: 0, explosion: 0, cited: '' });
+                noContra: 0, explosion: 0, cited: '', cocycleSaid: 0, notCocycle: 0, where: '',
+                sum: 0n, sheafified: 0 });
 
   var linesRead = 0, steps = 0, emptySteps = 0, observes = 0, publishes = 0, leaks = 0;
   var withdrawals = 0, retractLine = 0;
@@ -729,6 +857,15 @@ function review(source, name, library) {
       if (q.op === OP.PRINT) publishes++;
       if (q.op === OP.HALT) halted = 1;
       if (q.op === OP.RETRACT && !retractLine) retractLine = e.line + 1;
+      if (q.op === OP.COCYCLE && first && e.cocycle !== NOWHERE) {
+        /* one says one checks it. the referee checks it. */
+        claimsChecked++;
+        mk.cocycleSaid = e.cocycle === 0 ? 3 : e.cocycle;
+        if (e.cocycle === 0) claimsFalse++;
+      }
+      if (q.op === OP.GLUE && e.cocycle === 0) mk.notCocycle = 1;
+      if (e.cocycle === 0) { mk.where = e.where; mk.sum = e.sum; }
+      if (q.op === OP.SHEAFIFY) mk.sheafified = 1;
       if (p.op === OP.YONEDA) mk.yoneda = 1;
       if (e.discharged > mk.discharged) mk.discharged = e.discharged;
       if (p.op === OP.SIMILAR && e.repeatLine !== NOWHERE && !mk.similarOf) mk.similarOf = e.repeatLine + 1;
@@ -875,16 +1012,18 @@ function review(source, name, library) {
   }
   for (i = 0; i < nv; i++) if (!color[i]) search(i);
 
-  var anyNonsense = 0, anyNoContra = 0, anyExplosion = 0;
+  var anyNonsense = 0, anyNoContra = 0, anyExplosion = 0, anyNotCocycle = 0;
   for (i = 0; i < nl; i++) {
     if (mark[i].discharged) anyNonsense = 1;
     if (mark[i].noContra) anyNoContra = 1;
     if (mark[i].explosion) anyExplosion = 1;
+    if (mark[i].notCocycle) anyNotCocycle = 1;
   }
 
   var decision1 = ACCEPT;
   if (anyProseMinor || N.n || W.n || C.n || E.n || unread || pieces > 1 || anyNonsense) decision1 = MINOR;
-  if (unfinished || anyProseMajor || anyDangling || cycles.length || U.n || open || anyNoContra) decision1 = MAJOR;
+  if (unfinished || anyProseMajor || anyDangling || cycles.length || U.n || open || anyNoContra ||
+      anyNotCocycle) decision1 = MAJOR;
   if (claimsFalse || anyExplosion) decision1 = REJECT;
 
   var base = name.slice(name.lastIndexOf('/') + 1);
@@ -904,6 +1043,7 @@ function review(source, name, library) {
   if (anyDangling) codes += ' D';
   if (cycles.length) codes += ' X';
   if (anyNoContra) codes += ' K';
+  if (anyNotCocycle) codes += ' G';
   if (U.n) codes += ' U';
   if (open) codes += ' O';
   if (unread) codes += ' L';
@@ -1045,12 +1185,22 @@ function review(source, name, library) {
     case OP.CONTRA: return 'declares a contradiction';
     case OP.CITEFILE: return 'cites a paper';
     case OP.RETRACT: return 'retracts the manuscript';
+    case OP.TRIPLE: return 'declares a triple overlap';
+    case OP.COCYCLE: return 'checks the cocycle condition';
+    case OP.SHEAFIFY: return 'sheafifies';
     default: return 'says ' + mk.phrase;
     }
   }
 
   for (i = 0; i < nl; i++)
     if (mark[i].falseClaim) { pf('Line' + NB + (i + 1) + ' says ' + mark[i].claim + '. ' + mark[i].denial); comment(); }
+
+  for (i = 0; i < nl; i++)
+    if (mark[i].cocycleSaid === 3) {
+      pf('Line' + NB + (i + 1) + ' says one checks the cocycle condition. One did not. On ' + mark[i].where +
+         ' the transitions sum to ' + mark[i].sum + '.');
+      comment();
+    }
 
   for (i = 0; i < nl; i++)
     if (mark[i].explosion) {
@@ -1087,6 +1237,9 @@ function review(source, name, library) {
 
   for (i = 0; i < nl; i++)
     if (mark[i].noContra) { pf('Line' + NB + (i + 1) + ' says contradiction. Nothing contradicts.'); comment(); }
+
+  for (i = 0; i < nl; i++)
+    if (mark[i].notCocycle) { pf('Line' + NB + (i + 1) + ' glues transitions that are not a cocycle.'); comment(); }
 
   if (U.n) {
     pf(U.n === 1 ? 'Line' + U.text + ' uses a hypothesis that was never introduced.'
@@ -1159,6 +1312,17 @@ function review(source, name, library) {
   for (i = 0; i < nl; i++)
     if (mark[i].similarOf) {
       pf('Line' + NB + (i + 1) + ' says "similarly". It is line' + NB + mark[i].similarOf + ' again.');
+      comment();
+    }
+  for (i = 0; i < nl; i++)
+    if (mark[i].cocycleSaid === 1 || mark[i].cocycleSaid === 2) {
+      pf('Line' + NB + (i + 1) + ' says one checks the cocycle condition. ' +
+         (mark[i].cocycleSaid === 1 ? 'I checked. It holds.' : 'There is no triple overlap, so it holds vacuously.'));
+      comment();
+    }
+  for (i = 0; i < nl; i++)
+    if (mark[i].sheafified) {
+      pf('Line' + NB + (i + 1) + ' sheafifies. The manuscript was already a sheaf.');
       comment();
     }
   var k = 0;

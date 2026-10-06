@@ -1,0 +1,27 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        cocycle.sheaf
+lines             11
+steps             9 (1 of them empty)
+hypotheses open   0
+claims            1 checked, 1 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             F G
+result            not visible
+recommendation    REJECT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "Three arcs of the circle, all meeting at
+one point." It takes 9 steps and leaks one obstruction.
+
+I did not see what the proof arrives at. I have read the rest.
+
+1. Line 8 says one checks the cocycle condition. One did not. On
+   U1, U2 and U3 the transitions sum to 1.
+
+2. Line 9 glues transitions that are not a cocycle.
+
+Recommendation: reject.
+

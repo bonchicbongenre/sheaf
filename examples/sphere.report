@@ -1,0 +1,28 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        sphere.sheaf
+lines             18
+steps             16 (2 of them empty)
+hypotheses open   0
+claims            1 checked, 0 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             none
+result            pending
+recommendation    ACCEPT
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "Theorem. On the sphere, every cocycle is a
+coboundary." It takes 16 steps and publishes once.
+
+I have not seen the result. The comments below are on the text
+alone.
+
+1. Line 14 says one checks the cocycle condition. I checked. It
+   holds.
+
+2. Line 16 sheafifies. The manuscript was already a sheaf.
+
+Recommendation: accept.
+

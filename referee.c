@@ -42,8 +42,8 @@
 #define BUDGET  100000
 #define WIDTH   66
 
-/* a step that does nothing: "clearly", and a citation */
-#define INERT(op) ((op) == NOP_ || (op) == CITEFILE_)
+/* a step that does nothing: "clearly", a citation, a check one says one makes, sheafifying a sheaf */
+#define INERT(op) ((op) == NOP_ || (op) == CITEFILE_ || (op) == COCYCLE_ || (op) == SHEAFIFY_)
 
 enum { ACCEPT, MINOR, MAJOR, REJECT };
 
@@ -141,6 +141,11 @@ typedef struct {
     char no_contra;      /* "contradiction", and nothing contradicts */
     char explosion;      /* a contradiction from nothing assumed */
     char cited[64];      /* by [fermat.sheaf]: the paper cited */
+    char cocycle_said;   /* one checks the cocycle condition: 1 holds, 2 vacuously, 3 fails */
+    char not_cocycle;    /* by gluing, on transitions that are not a cocycle */
+    char where[48];      /* the triple overlap where it fails */
+    long long sum;       /* and the sum there */
+    char sheafified;
 } Mark;
 
 /* where the manuscript is, so its citations can be looked for beside it */
@@ -346,6 +351,18 @@ static void read_line(const Event *e, void *ctx)
         if (q->op == PRINT_) publishes++;
         if (q->op == HALT_) halted = 1;
         if (q->op == RETRACT_ && !retract_line) retract_line = e->line + 1;
+        if (q->op == COCYCLE_ && first && e->cocycle != NOWHERE) {
+            /* one says one checks it. the referee checks it. */
+            claims_checked++;
+            m->cocycle_said = e->cocycle == 0 ? 3 : (char)e->cocycle;
+            if (e->cocycle == 0) claims_false++;
+        }
+        if (q->op == GLUE_ && e->cocycle == 0) m->not_cocycle = 1;
+        if (e->cocycle == 0) {
+            memcpy(m->where, e->where, sizeof m->where);
+            m->sum = e->sum;
+        }
+        if (q->op == SHEAFIFY_) m->sheafified = 1;
         if (p->op == YONEDA_) m->yoneda = 1;
         if (e->discharged > m->discharged) m->discharged = e->discharged;
         if (p->op == SIMILAR_ && e->repeat_line != NOWHERE && !m->similar_of)
@@ -573,6 +590,9 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case CONTRA_: return "declares a contradiction";
     case CITEFILE_: return "cites a paper";
     case RETRACT_: return "retracts the manuscript";
+    case TRIPLE_: return "declares a triple overlap";
+    case COCYCLE_: return "checks the cocycle condition";
+    case SHEAFIFY_: return "sheafifies";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;
@@ -666,7 +686,7 @@ static void read_citations(void)
     long long *zero = calloc((size_t)(ne ? ne : 1), sizeof *zero);
     long long *cls = calloc((size_t)(ne ? ne : 1), sizeof *cls);
     if (zero && cls) {
-        rank1 = cech_h1(nv, ne, ea, eb, zero, cls);
+        rank1 = cech_h1(nv, ne, ea, eb, zero, cls, NULL);
         pieces = nv - ne + rank1;
     }
     free(zero);
@@ -729,7 +749,7 @@ static void find_circles(void)
 /* ---- what was found: one reading, for every report ---- */
 
 static int any_prose_major, any_prose_minor, any_dangling, unread, open_end, any_nonsense;
-static int any_no_contra, any_explosion;
+static int any_no_contra, any_explosion, any_not_cocycle;
 static int nu, nw, nc, nn, nx;
 static char ul[1024], wl[1024], cl[1024], nl[1024], el[1024];
 static int decision1;
@@ -764,6 +784,7 @@ static void find(const char *file)
         if (mark[i].discharged) any_nonsense = 1;
         if (mark[i].no_contra) any_no_contra = 1;
         if (mark[i].explosion) any_explosion = 1;
+        if (mark[i].not_cocycle) any_not_cocycle = 1;
     }
 
     read_citations();
@@ -773,7 +794,7 @@ static void find(const char *file)
     if (any_prose_minor || nn || nw || nc || nx || unread || pieces > 1 || any_nonsense)
         decision1 = MINOR;
     if (unfinished || any_prose_major || any_dangling || ncycles || nu || open_end ||
-        any_no_contra)
+        any_no_contra || any_not_cocycle)
         decision1 = MAJOR;
     if (claims_false || any_explosion) decision1 = REJECT;
 
@@ -806,6 +827,7 @@ static int write_report(int who)
     if (any_dangling)                     strcat(codes, " D");
     if (ncycles)                          strcat(codes, " X");
     if (any_no_contra)                    strcat(codes, " K");
+    if (any_not_cocycle)                  strcat(codes, " G");
     if (nu)                               strcat(codes, " U");
     if (open_end)                         strcat(codes, " O");
     if (unread)                           strcat(codes, " L");
@@ -928,6 +950,13 @@ static int write_report(int who)
         }
 
     for (int i = 0; i < nlines; i++)
+        if (mark[i].cocycle_said == 3) {
+            pf("Line" NB "%d says one checks the cocycle condition. One did not. On %s "
+               "the transitions sum to %lld.", i + 1, mark[i].where, mark[i].sum);
+            comment();
+        }
+
+    for (int i = 0; i < nlines; i++)
         if (mark[i].explosion) {
             pf("Line" NB "%d derives a contradiction from no assumption. "
                "The paper proves everything.", i + 1);
@@ -973,6 +1002,12 @@ static int write_report(int who)
     for (int i = 0; i < nlines; i++)
         if (mark[i].no_contra) {
             pf("Line" NB "%d says contradiction. Nothing contradicts.", i + 1);
+            comment();
+        }
+
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].not_cocycle) {
+            pf("Line" NB "%d glues transitions that are not a cocycle.", i + 1);
             comment();
         }
 
@@ -1058,6 +1093,18 @@ static int write_report(int who)
         if (mark[i].similar_of) {
             pf("Line" NB "%d says \"similarly\". It is line" NB "%d again.",
                i + 1, mark[i].similar_of);
+            comment();
+        }
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].cocycle_said == 1 || mark[i].cocycle_said == 2) {
+            pf("Line" NB "%d says one checks the cocycle condition. %s", i + 1,
+               mark[i].cocycle_said == 1 ? "I checked. It holds."
+                   : "There is no triple overlap, so it holds vacuously.");
+            comment();
+        }
+    for (int i = 0; i < nlines; i++)
+        if (mark[i].sheafified) {
+            pf("Line" NB "%d sheafifies. The manuscript was already a sheaf.", i + 1);
             comment();
         }
     for (int i = 0, k = 0; i < nlines; i++)

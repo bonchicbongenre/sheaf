@@ -252,7 +252,8 @@ enum {
     READ_,
     YONEDA_, NONSENSE_, SIMILAR_,
     ASSUME_, CONTRA_,
-    CITEFILE_, RETRACT_
+    CITEFILE_, RETRACT_,
+    TRIPLE_, COCYCLE_, SHEAFIFY_
 };
 
 typedef struct {
@@ -295,6 +296,10 @@ static const Phrase PH[] = {
     { "cover",                         COVER_, 0 },
     { "the transition",                TRANS_, 0 },
     { "by gluing",                     GLUE_,  0 },
+    { "the triple overlap",            TRIPLE_, 0 },
+    { "one checks the cocycle condition", COCYCLE_, 0 },
+    { "sheafify",                      SHEAFIFY_, 0 },
+    { "sheafification",                SHEAFIFY_, 0 },
     /* the reader */
     { "left to the reader",            READ_,  0 },
     /* abstract nonsense */
@@ -481,17 +486,24 @@ static long try_derived(const char *ln)
 /*
  * A cover is a list of opens, U1, U2, ..., and a transition on each
  * overlap: an integer 1-cochain on the nerve. "By gluing." asks
- * whether it is a coboundary. The nerve is a graph. An overlap is an
- * edge, one per transition stated. Triple overlaps are not seen.
+ * whether it is a coboundary. An overlap is an edge, one per
+ * transition stated. A triple overlap, declared, is a triangle: it
+ * implies its three overlaps (a transition not stated is 0), the
+ * transitions around it must sum to zero (the cocycle condition), and
+ * a cycle that bounds it no longer counts.
  */
 #define MAX_OPENS    64
 #define MAX_OVERLAPS 256
+#define MAX_TRIPLES  256
 
 static char opens[MAX_OPENS][16];
 static int nopens;
 static int ov_a[MAX_OVERLAPS], ov_b[MAX_OVERLAPS];
 static long long ov_c[MAX_OVERLAPS];
+static char ov_implied[MAX_OVERLAPS];     /* by a triple overlap; no transition stated */
 static int noverlaps;
+static int tri_a[MAX_TRIPLES], tri_b[MAX_TRIPLES], tri_c[MAX_TRIPLES];
+static int ntriples;
 
 /* the next open named on the line at or after s: "U2" */
 static const char *next_open(const char *ln, const char *s, char *name, size_t cap)
@@ -540,15 +552,53 @@ static long long transition_value(const char *s)
     return 0;
 }
 
+/* the first overlap of x and y, and which way round it was stated */
+static int edge_between(int m, const int *a, const int *b, int x, int y, int *sign)
+{
+    for (int e = 0; e < m; e++) {
+        if (a[e] == x && b[e] == y) { *sign = 1; return e; }
+        if (a[e] == y && b[e] == x) { *sign = -1; return e; }
+    }
+    return NOWHERE;
+}
+
+/* the sum of the transitions around a triple overlap */
+static long long around(int t)
+{
+    int v[4] = { tri_a[t], tri_b[t], tri_c[t], tri_a[t] };
+    long long s = 0;
+    for (int i = 0; i < 3; i++) {
+        int sign, e = edge_between(noverlaps, ov_a, ov_b, v[i], v[i + 1], &sign);
+        if (e != NOWHERE) s += sign > 0 ? ov_c[e] : -ov_c[e];
+    }
+    return s;
+}
+
+/* the first triple overlap where the cocycle condition fails, or NOWHERE */
+static int cocycle_fails(long long *sum)
+{
+    for (int t = 0; t < ntriples; t++)
+        if ((*sum = around(t)) != 0)
+            return t;
+    return NOWHERE;
+}
+
+/* "U1, U2 and U3" */
+static void triple_named(int t, char *out, size_t cap)
+{
+    snprintf(out, cap, "%s, %s and %s", opens[tri_a[t]], opens[tri_b[t]], opens[tri_c[t]]);
+}
+
 /*
  * The class of an integer 1-cochain on a graph, in H^1(graph; Z) = Z^b1.
  * A spanning forest fixes a potential f. Each edge outside the forest
  * closes one cycle, and the cochain's sum around it is f(a) + c - f(b).
  * The cochain is a coboundary iff every sum is zero. Returns b1; the
- * sums go in cls, which has room for m.
+ * sums go in cls, which has room for m. If tree_out is given, which
+ * edges are in the forest goes there.
  */
 static int cech_h1(int n, int m, const int *a, const int *b,
-                   const long long *c, long long *cls)
+                   const long long *c, long long *cls, int *tree_out)
 {
     int *seen = calloc((size_t)(n ? n : 1), sizeof *seen);
     int *queue = calloc((size_t)(n ? n : 1), sizeof *queue);
@@ -580,9 +630,89 @@ static int cech_h1(int n, int m, const int *a, const int *b,
     for (int e = 0; e < m; e++)
         if (!tree[e])
             cls[b1++] = f[a[e]] + c[e] - f[b[e]];
+    if (tree_out)
+        memcpy(tree_out, tree, (size_t)m * sizeof *tree);
 out:
     free(seen); free(queue); free(tree); free(f);
     return b1;
+}
+
+static long long gcd_ll(long long x, long long y)
+{
+    if (x < 0) x = -x;
+    if (y < 0) y = -y;
+    while (y) { long long t = x % y; x = y; y = t; }
+    return x;
+}
+
+/*
+ * H^1 of the nerve with its triangles filled: the cycles of the graph,
+ * less those that bound. A triangle's boundary, read in the cycles of
+ * the spanning forest, is a row; the rows are reduced, and each pivot
+ * is a cycle that no longer counts. H^1 is free, so its rank is b1
+ * less the pivots. The class, read on the cycles left, goes in out;
+ * glued is whether every sum is zero. Returns the rank.
+ */
+static int cech_h1_filled(long long *out, int *glued)
+{
+    long long cls[MAX_OVERLAPS];
+    int tree[MAX_OVERLAPS], col[MAX_OVERLAPS], pivot[MAX_OVERLAPS] = { 0 };
+    int b1 = cech_h1(nopens, noverlaps, ov_a, ov_b, ov_c, cls, tree);
+
+    *glued = 1;
+    for (int k = 0; k < b1; k++)
+        if (cls[k]) *glued = 0;
+
+    /* each edge outside the forest is a column */
+    for (int e = 0, k = 0; e < noverlaps; e++)
+        col[e] = tree[e] ? NOWHERE : k++;
+
+    long long *rows = calloc((size_t)(ntriples ? ntriples : 1) * (size_t)(b1 ? b1 : 1), sizeof *rows);
+    int *prow = calloc((size_t)(ntriples ? ntriples : 1), sizeof *prow);
+    int *pcol = calloc((size_t)(ntriples ? ntriples : 1), sizeof *pcol);
+    int npiv = 0;
+    if (rows && prow && pcol && b1 > 0)
+        for (int t = 0; t < ntriples; t++) {
+            long long *r = rows + (size_t)t * (size_t)b1;
+            int v[4] = { tri_a[t], tri_b[t], tri_c[t], tri_a[t] };
+            for (int i = 0; i < 3; i++) {
+                int sign, e = edge_between(noverlaps, ov_a, ov_b, v[i], v[i + 1], &sign);
+                if (e != NOWHERE && col[e] != NOWHERE) r[col[e]] += sign;
+            }
+            for (int q = 0; q < npiv; q++) {
+                long long *p = rows + (size_t)prow[q] * (size_t)b1;
+                long long fr = r[pcol[q]], fp = p[pcol[q]];
+                if (!fr) continue;
+                long long g = 0;
+                for (int j = 0; j < b1; j++) {
+                    r[j] = r[j] * fp - p[j] * fr;
+                    g = gcd_ll(g, r[j]);
+                }
+                if (g > 1)
+                    for (int j = 0; j < b1; j++) r[j] /= g;
+            }
+            for (int j = 0; j < b1; j++)
+                if (r[j]) { prow[npiv] = t; pcol[npiv] = j; pivot[j] = 1; npiv++; break; }
+        }
+    free(rows); free(prow); free(pcol);
+
+    int rank = 0;
+    for (int k = 0; k < b1; k++)
+        if (!pivot[k]) out[rank++] = cls[k];
+    return rank;
+}
+
+/* a triple overlap implies its overlaps; a transition not stated is 0 */
+static void imply(int x, int y)
+{
+    int sign;
+    if (edge_between(noverlaps, ov_a, ov_b, x, y, &sign) != NOWHERE || noverlaps == MAX_OVERLAPS)
+        return;
+    ov_a[noverlaps] = x;
+    ov_b[noverlaps] = y;
+    ov_c[noverlaps] = 0;
+    ov_implied[noverlaps] = 1;
+    noverlaps++;
 }
 
 /* ---- one step ---- */
@@ -615,6 +745,9 @@ typedef struct {
     long          repeat_degree;
     int           contra;      /* 1 reached, 2 from nothing assumed, 3 nothing contradicts */
     int           withdrawn;   /* an obstruction that would have leaked, after a retraction */
+    int           cocycle;     /* 1 holds, 2 holds vacuously, 0 fails; NOWHERE not checked */
+    char          where[48];   /* the triple overlap where it fails */
+    long long     sum;         /* and what the transitions sum to there */
 } Event;
 
 /* the paper has been retracted. what it has leaked stays leaked. */
@@ -663,6 +796,7 @@ static void fresh(Event *e, int line)
     e->glue = NOWHERE;
     e->repeat_line = NOWHERE;
     e->repeat_degree = -1;
+    e->cocycle = NOWHERE;
 }
 
 /* perform one line: a derived functor, or the leftmost phrase */
@@ -757,7 +891,7 @@ static void perform(int line, Event *e, FILE *derived, int *running)
                 /* a new cover: the opens named on the line */
                 char name[16];
                 const char *s = ln;
-                nopens = noverlaps = 0;
+                nopens = noverlaps = ntriples = 0;
                 while ((s = next_open(ln, s, name, sizeof name)))
                     open_named(name);
                 break;
@@ -766,32 +900,83 @@ static void perform(int line, Event *e, FILE *derived, int *running)
                 /* the transition on two opens */
                 char n1[16], n2[16];
                 const char *s = next_open(ln, ln, n1, sizeof n1);
-                if (s && next_open(ln, s, n2, sizeof n2) && noverlaps < MAX_OVERLAPS) {
-                    int i = open_named(n1), j = open_named(n2);
-                    if (i != NOWHERE && j != NOWHERE) {
+                if (s && next_open(ln, s, n2, sizeof n2)) {
+                    int i = open_named(n1), j = open_named(n2), sign;
+                    int e0 = (i != NOWHERE && j != NOWHERE)
+                           ? edge_between(noverlaps, ov_a, ov_b, i, j, &sign) : NOWHERE;
+                    if (e0 != NOWHERE && ov_implied[e0]) {
+                        /* the transition on an overlap a triple overlap implied */
+                        ov_a[e0] = i;
+                        ov_b[e0] = j;
+                        ov_c[e0] = transition_value(at + strlen(p->text));
+                        ov_implied[e0] = 0;
+                    } else if (i != NOWHERE && j != NOWHERE && noverlaps < MAX_OVERLAPS) {
                         ov_a[noverlaps] = i;
                         ov_b[noverlaps] = j;
                         ov_c[noverlaps] = transition_value(at + strlen(p->text));
+                        ov_implied[noverlaps] = 0;
                         noverlaps++;
                     }
                 }
                 break;
             }
+            case TRIPLE_: {
+                /* the triple overlap of three opens: a triangle in the nerve */
+                char n1[16], n2[16], n3[16];
+                const char *s = next_open(ln, ln, n1, sizeof n1);
+                const char *s2 = s ? next_open(ln, s, n2, sizeof n2) : NULL;
+                if (s2 && next_open(ln, s2, n3, sizeof n3) && ntriples < MAX_TRIPLES) {
+                    int i = open_named(n1), j = open_named(n2), k = open_named(n3);
+                    if (i != NOWHERE && j != NOWHERE && k != NOWHERE &&
+                        i != j && j != k && i != k) {
+                        tri_a[ntriples] = i;
+                        tri_b[ntriples] = j;
+                        tri_c[ntriples] = k;
+                        ntriples++;
+                        imply(i, j);
+                        imply(j, k);
+                        imply(i, k);
+                    }
+                }
+                break;
+            }
+            case COCYCLE_: {
+                /* one checks the cocycle condition. one does not. the referee does. */
+                long long sum;
+                int t = cocycle_fails(&sum);
+                e->cocycle = !ntriples ? 2 : t == NOWHERE ? 1 : 0;
+                if (t != NOWHERE) {
+                    triple_named(t, e->where, sizeof e->where);
+                    e->sum = sum;
+                }
+                break;
+            }
+            case SHEAFIFY_:
+                /* the sheafification of a sheaf is the sheaf */
+                break;
             case GLUE_: {
-                /* is the cochain a coboundary? 1 if it glues */
-                long long cls[MAX_OVERLAPS];
-                int b1 = cech_h1(nopens, noverlaps, ov_a, ov_b, ov_c, cls);
-                int glued = 1;
-                for (int i = 0; i < b1; i++)
-                    if (cls[i]) glued = 0;
+                /* is the cochain a cocycle, and a coboundary? 1 if it glues */
+                long long cls[MAX_OVERLAPS], sum;
+                int t = cocycle_fails(&sum), glued, rank = 0;
+                if (t != NOWHERE) {
+                    glued = 0;
+                    e->cocycle = 0;
+                    triple_named(t, e->where, sizeof e->where);
+                    e->sum = sum;
+                } else {
+                    rank = cech_h1_filled(cls, &glued);
+                }
                 push(glued);
                 e->glue = glued;
-                e->b1 = b1;
+                e->b1 = rank;
                 if (!glued && retracted) {
                     e->withdrawn = 1;
+                } else if (!glued && derived && t != NOWHERE) {
+                    fprintf(derived, "H^1(U,Z): not a cocycle on %s; the sum is %lld\n",
+                            e->where, sum);
                 } else if (!glued && derived) {
-                    fprintf(derived, "H^1(U,Z) = Z^%d; the class is (", b1);
-                    for (int i = 0; i < b1; i++)
+                    fprintf(derived, "H^1(U,Z) = Z^%d; the class is (", rank);
+                    for (int i = 0; i < rank; i++)
                         fprintf(derived, "%s%lld", i ? ", " : "", cls[i]);
                     fprintf(derived, ")\n");
                 }
@@ -828,6 +1013,9 @@ static void perform(int line, Event *e, FILE *derived, int *running)
                     e->discharged = again.discharged;
                     e->contra = again.contra;
                     e->withdrawn = again.withdrawn;
+                    e->cocycle = again.cocycle;
+                    e->sum = again.sum;
+                    memcpy(e->where, again.where, sizeof e->where);
                 }
                 break;
             case CITEFILE_:

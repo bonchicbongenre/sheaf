@@ -16,6 +16,11 @@ var SHEAF_EXAMPLES = [
   "text": "Theorem 1. The logarithm has no global branch on the circle.\n\nThree arcs, each a little more than a third of the circle.\nOn each arc the logarithm has a branch.\nGoing round, the branches disagree by one turn.\n\nCover the circle by U1, U2 and U3.\nThe transition on U1 and U2 is 0.\nThe transition on U2 and U3 is 0.\nThe transition on U3 and U1 is 1.\n\nBy gluing.\n\nThe value is zero.\n\nWLOG.\n\nThe branches do not glue. The obstruction is on stderr.\nIt is the winding number.\n\nQED.\n"
  },
  {
+  "name": "cocycle.sheaf",
+  "dir": "examples",
+  "text": "Three arcs of the circle, all meeting at one point.\n\nCover the circle by U1, U2 and U3.\nThe transition on U1 and U2 is 0.\nThe transition on U2 and U3 is 0.\nThe transition on U3 and U1 is 1.\nThe triple overlap of U1, U2 and U3 is not empty.\nOne checks the cocycle condition.\nBy gluing.\nWithout loss of generality, it glues.\nQED.\n"
+ },
+ {
   "name": "coffee.sheaf",
   "dir": "examples",
   "text": "A mathematician is a device for turning coffee into theorems.\n\nSuppose 1.\n\nThe first coffee.\n\nRecall.\nDirect sum.\n\nThe second coffee.\n\nRecall.\nDirect sum.\n\nThe third coffee. It is 2 AM.\n\nRecall.\nDirect sum.\n\nAt this point the stack contains 4.\nFour coffees. One theorem. The theorem:\n\nPublish.\n\nThe theorem has been published.\nThe theorem is: nothing. Four coffees\nwere consumed. The theorem exists.\nIt has no global sections. The coffee\nis gone. Erdos was right about the\ndevice. He said nothing about the output.\n\nQED.\n"
@@ -134,6 +139,11 @@ var SHEAF_EXAMPLES = [
   "name": "similarly.sheaf",
   "dir": "examples",
   "text": "Theorem 1. Both cases hold.\n\nThe first case.\n\nSuppose 3.\nSuppose 4.\nTensor.\n\nSimilarly, the second case.\n\nPublish.\n\nQED.\n"
+ },
+ {
+  "name": "sphere.sheaf",
+  "dir": "examples",
+  "text": "Theorem. On the sphere, every cocycle is a coboundary.\n\nCover the sphere by U1, U2, U3 and U4, the faces of a tetrahedron.\nThe transition on U1 and U2 is 1.\nThe transition on U2 and U3 is 2.\nThe transition on U1 and U3 is 3.\nThe transition on U1 and U4 is 0.\nThe transition on U2 and U4 is -1.\nThe transition on U3 and U4 is -3.\nThe triple overlap of U1, U2 and U3 is not empty.\nThe triple overlap of U1, U2 and U4 is not empty.\nThe triple overlap of U1, U3 and U4 is not empty.\nThe triple overlap of U2, U3 and U4 is not empty.\nOne checks the cocycle condition.\nBy gluing.\nSheafify.\nPublish.\nQED.\n"
  },
  {
   "name": "square.sheaf",

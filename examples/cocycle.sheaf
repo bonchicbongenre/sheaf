@@ -1,0 +1,11 @@
+Three arcs of the circle, all meeting at one point.
+
+Cover the circle by U1, U2 and U3.
+The transition on U1 and U2 is 0.
+The transition on U2 and U3 is 0.
+The transition on U3 and U1 is 1.
+The triple overlap of U1, U2 and U3 is not empty.
+One checks the cocycle condition.
+By gluing.
+Without loss of generality, it glues.
+QED.
