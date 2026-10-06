@@ -265,10 +265,10 @@ citation index:
 ```
 LIBRARY -- CITATION INDEX
 ------------------------------------------------------------
-papers            39
+papers            43
 citations         9
 papers cited      6
-not cited         33
+not cited         37
 not held          1
 errata            2
 retracted         1
@@ -314,9 +314,9 @@ should be deleted.` leaves it blank. Nothing else in an erratum is
 part of the paper. The author regrets the error, and the regret does
 nothing.
 
-`storage.sheaf` is one of the four wrong examples, and it stays as
-written. "The pullback recovers the value." performs a second
-pullback, and what it publishes is 0, not 42.
+`storage.sheaf` is wrong, and it stays as written. "The pullback
+recovers the value." performs a second pullback, and what it
+publishes is 0, not 42.
 `examples/storage-erratum.sheaf` corrects line 13. The paper, so
 corrected, publishes 42, and the referee checks the claim that it is
 42. The result is still not visible. But "recovered" contains
@@ -856,9 +856,10 @@ a quine.
 ## The Site
 
 https://theresultisonthenext.page is `docs/`. It runs sheaf, the
-referee and the librarian in the browser, from a port of the C. `make site` bundles the examples into the page. `make
-site-test` checks the port against every report, every derived file
-and the library index, byte for byte. Both need node.
+referee and the librarian in the browser, from a port of the C. `make
+site` bundles the examples into the page. `make site-test` checks the
+port against every report, every derived file and the library index,
+byte for byte. Both need node.
 
 The desk marks the words that act as they are typed. A report can be
 resubmitted without changes, and the referee does not change its
