@@ -68,6 +68,8 @@ The computation is the proof.
 | `assume for contradiction` | | ASSUME | Everything from here is derived from what is assumed. |
 | `contradiction` | | CONTRA | Nonzero: the assumption is discarded, and its negation, 1, is proved. |
 | `by [paper]` | | CITE | Another paper is cited. It is not read. |
+| `retract` | | RETRACT | The paper is withdrawn. What it leaks from here is withdrawn with it. |
+| `Erratum to [paper].` | `Corrigendum to [paper].` | | First line only. The paper, corrected. |
 | `QED` | | HALT | The proof is complete. |
 | `clearly` | | NOP | Obviously. Contributes nothing. |
 | `it is well known` | `TFAE` | NOP | Everyone knows this. Nobody cites it. |
@@ -94,16 +96,17 @@ Publish.
 QED.
 ```
 
-See `examples/` for 35 programs, including the seminar, the referee,
+See `examples/` for 39 programs, including the seminar, the referee,
 the thesis defense, the arXiv preprint, the geometric Langlands
 conjecture, sheaf cohomology, vanishing theorems, Grothendieck
 vanishing, the long exact sequence, Gauss at seven, Euclid read as a
 descent, Collatz from 27, the circle by three arcs and by two, a
 lemma used twice, the reader's square, a stopwatch, the only quine,
 Yoneda, abstract nonsense, a second case that is not similar, a
-proof by contradiction, a proof of everything, a survey, and a
-follow-up to the survey. `submissions/` holds three more. They do not
-terminate. Only the referee reads them.
+proof by contradiction, a proof of everything, a survey, a follow-up
+to the survey, an erratum, an erratum to the erratum, Brouwer's fixed
+point theorem, retracted, and Nash, who cites it. `submissions/` holds
+three more. They do not terminate. Only the referee reads them.
 
 ## Derived Functors
 
@@ -255,16 +258,19 @@ citation index:
 ```
 LIBRARY -- CITATION INDEX
 ------------------------------------------------------------
-papers            35
-citations         8
-papers cited      5
-not cited         30
+papers            39
+citations         9
+papers cited      6
+not cited         33
 not held          1
+errata            2
+retracted         1
 h-index           2
 ------------------------------------------------------------
 cited  paper               cited by
     2  fermat.sheaf        followup.sheaf, survey.sheaf
     2  gauss.sheaf         followup.sheaf, survey.sheaf
+    1  brouwer.sheaf       nash.sheaf  (retracted)
     1  collatz.sheaf       survey.sheaf
     1  survey.sheaf        followup.sheaf
     1  twoarcs.sheaf       survey.sheaf
@@ -284,6 +290,77 @@ Real papers write "cf. [12]". In sheaf `cf.` is a jump, and the
 number is a line: "cf. [12]" sends the reader to line 13. In a short
 paper that is past the end, and QED is not reached. "By [12]" cites a
 paper called 12. There is no [12].
+
+## Errata and Retractions
+
+```
+Erratum to [storage.sheaf].
+
+Line 13 should read: "The value is recovered, and it is 42."
+
+The author regrets the error.
+```
+
+A paper whose first line is `Erratum to [paper].` is that paper,
+corrected. `Line N should read: ...` replaces a line, and `Line N
+should be deleted.` leaves it blank. Nothing else in an erratum is
+part of the paper. The author regrets the error, and the regret does
+nothing.
+
+`storage.sheaf` is one of the four wrong examples, and it stays as
+written. "The pullback recovers the value." performs a second
+pullback, and what it publishes is 0, not 42.
+`examples/storage-erratum.sheaf` corrects line 13. The paper, so
+corrected, publishes 42, and the referee checks the claim that it is
+42. The result is still not visible. But "recovered" contains
+`cover`: "Line 13 is commentary, and its "recovered" declares a
+cover." Major revision. `examples/storage-erratum-erratum.sheaf`
+corrects line 3 of the erratum, and the erratum, corrected, corrects
+the paper. Minor revision: line 8 is still well known.
+
+```
+erratum to        storage-erratum.sheaf, 1 line corrected
+```
+
+The referee reads the paper an erratum corrects. "I have read it, as
+corrected. I had not read it before."
+
+A correction to a line the paper does not have extends the paper to
+it. An erratum to a paper that is not there is its corrections alone.
+Errata to errata are applied to a depth of eight. Typed into the REL,
+an erratum is only its own lines: the REL reads lines, not papers.
+
+An erratum is also the way to see a result. "Line 16 should read: R^1
+publish." That is how the 42 and the 0 above were seen.
+
+Strictly, the author's error is corrected by a corrigendum, and the
+publisher's by an erratum. `Corrigendum to [paper].` is the same
+instruction. In sheaf the publisher is the parser, which performs the
+prose as it sets it, so storage's error is the publisher's.
+
+`Retract.` withdraws the paper. It is still read, and it still runs.
+What it leaks after the retraction is withdrawn; what it leaked
+before stays leaked. The referee's form says the result is
+"withdrawn", and its prose says "The manuscript was retracted on line
+8. I have reviewed it anyway."
+
+Topology says "retract". `examples/brouwer.sheaf` proves the Brouwer
+fixed point theorem by contradiction: a map of the disc to itself
+with no fixed point gives a retraction of the disc onto its boundary
+circle, and then the identity on H^1 of the circle factors through H^1
+of the disc, which is zero. The line that says "retraction" retracts
+the paper. H^1 of the circle leaks before it. The second leak, after
+it, is withdrawn. "Line 8 is commentary, and its "retraction"
+retracts the manuscript. Please move it out of the proof."
+
+Brouwer, the intuitionist, did not accept proofs of existence by
+contradiction. This one was retracted.
+
+`examples/nash.sheaf` cites it. The referee does not read what is
+cited, so it does not know: "Line 4 cites [brouwer.sheaf]. I have it
+somewhere." The librarian knows: "brouwer.sheaf has been retracted.
+It is still cited, by nash.sheaf." A retracted paper still counts
+toward the h-index.
 
 ## Gluing
 
@@ -501,7 +578,7 @@ the stack is empty, against the last value to leave it. A claim about
 the obstruction is checked against the last obstruction to leak. The
 referee says whether a claim holds. It does not say what holds.
 
-Of the 35 examples, 16 are accepted, 8 need minor revision, 8 need
+Of the 39 examples, 17 are accepted, 9 need minor revision, 10 need
 major revision, and 3 are rejected. Among the accepted: "With two
 arcs, the logarithm has a global branch on the circle." The referee
 sees the nerve, as the interpreter does.
@@ -618,23 +695,26 @@ each manuscript's report to the referee, and that report to the
 referee, until a report comes round again. Where each review ends is
 kept in `fixpoint/`.
 
-Of the 38 reviews, 21 reach a fixed point by the third round. The
+Of the 42 reviews, 22 reach a fixed point by the third round. The
 fixed points are reports that could not finish reading themselves:
 "I read 100000 lines and did not reach the end." There are 8 of
-them. All 21 recommend major revision.
+them. All 22 recommend major revision.
 
-In 19 of the 21, the reader was sent back by the words the referee
+In 20 of the 22, the reader was sent back by the words the referee
 used to say it could not see: "see attached", "unable to see", "I
 could not see the result", "I have not seen the result". In the
 other 2, by the manuscript's own false friend, quoted.
 
-Of the other 17, 15 do not come round in 16 rounds. Their referee
+Of the other 20, 18 do not come round in 16 rounds. Their referee
 wore the lack in other words: "could not tell", "pending", "did not
 reach me". Each report says the manuscript publishes, or observes.
 Each "publishes" publishes, each "observes" observes, and each has to
 be reported. Most reports grow by 6 lines a round. The review of
 `yoneda.sheaf` grows by 9: its remark says every manuscript "prints"
-the same thing, and "prints" contains NTS.
+the same thing, and "prints" contains NTS. So does the review of
+`brouwer.sheaf`. Its report was retracted, and every comment on a
+retraction says "retracted", which retracts the report again, and has
+to be reported.
 
 The last 2 explode. A line that says "contradiction" declares one.
 The report on `everything.sheaf` says the paper "derives a

@@ -149,7 +149,8 @@ static char dir[1024];
 static Mark *mark;
 
 static long lines_read, steps, empty_steps;
-static long observes, publishes, leaks;
+static long observes, publishes, leaks, withdrawals;
+static int  retract_line;    /* where the manuscript was retracted, from 1 */
 static long claims_checked, claims_false;
 static int  have_section, have_obstruction;
 static long long section, obstruction;
@@ -320,7 +321,9 @@ static void read_line(const Event *e, void *ctx)
 
     if (e->degree >= 0) {
         steps++;
-        if (e->degree >= 1)
+        if (e->degree >= 1 && e->withdrawn)
+            withdrawals++;
+        else if (e->degree >= 1)
             leaks++;
         else if (cistrstr(e->text, "publish"))
             publishes++;
@@ -330,7 +333,9 @@ static void read_line(const Event *e, void *ctx)
         const Phrase *p = e->p;
         const Phrase *q = e->repeat ? e->repeat : p;   /* what was performed */
         steps++;
-        if (e->repeat_degree >= 1)
+        if (e->repeat_degree >= 1 && e->withdrawn)
+            withdrawals++;
+        else if (e->repeat_degree >= 1)
             leaks++;
         else if (e->repeat_degree == 0) {
             if (cistrstr(lines[e->repeat_line], "publish")) publishes++;
@@ -340,6 +345,7 @@ static void read_line(const Event *e, void *ctx)
         if (q->op == EMIT_) observes++;
         if (q->op == PRINT_) publishes++;
         if (q->op == HALT_) halted = 1;
+        if (q->op == RETRACT_ && !retract_line) retract_line = e->line + 1;
         if (p->op == YONEDA_) m->yoneda = 1;
         if (e->discharged > m->discharged) m->discharged = e->discharged;
         if (p->op == SIMILAR_ && e->repeat_line != NOWHERE && !m->similar_of)
@@ -410,7 +416,9 @@ static void read_line(const Event *e, void *ctx)
             mark[e->target - 1].called = 1;
     }
 
-    if (e->glue == 0)
+    if (e->glue == 0 && e->withdrawn)
+        withdrawals++;     /* it would have leaked; the paper was retracted */
+    else if (e->glue == 0)
         leaks++;           /* a gluing that failed: its class leaks */
     if (e->underflows)
         m->underflow = 1;
@@ -564,6 +572,7 @@ static const char *performs(const Mark *m, char *buf, size_t cap)
     case ASSUME_: return "assumes for contradiction";
     case CONTRA_: return "declares a contradiction";
     case CITEFILE_: return "cites a paper";
+    case RETRACT_: return "retracts the manuscript";
     default:
         snprintf(buf, cap, "says %s", m->phrase);
         return buf;
@@ -743,6 +752,7 @@ static void find(const char *file)
 
     for (int i = 0; i < nlines; i++)
         if (mark[i].dangling) any_dangling = 1;
+    if (erratum_missing) any_dangling = 1;
 
     /* lazy lemmas nobody cited: their proofs were never read */
     for (int l = 0; l < nlabels && !unfinished; l++)
@@ -810,6 +820,9 @@ static int write_report(int who)
                            : "EDITORIAL OFFICE -- REPORT OF REVIEWER 2\n", sink);
     fprintf(sink, "------------------------------------------------------------\n");
     fprintf(sink, "manuscript        %s\n", name);
+    if (erratum_depth)
+        fprintf(sink, "erratum to        %s, %d line%s corrected\n", erratum_chain[0],
+                corrections, corrections == 1 ? "" : "s");
     fprintf(sink, "lines             %d\n", nlines);
     if (unfinished)
         fprintf(sink, "steps             %ld (reading stopped)\n", steps);
@@ -829,7 +842,8 @@ static int write_report(int who)
     fprintf(sink, "citation graph    V %d, E %d, H^0 %d, H^1 %d, chi %d\n",
             nv, ne, pieces, rank1, nv - ne);
     fprintf(sink, "codes            %s\n", codes[0] ? codes : " none");
-    fprintf(sink, "result            %s\n", who == REFEREE_1 ? FIELD[h % NFIELD] : "not new");
+    fprintf(sink, "result            %s\n", retract_line ? "withdrawn"
+                                       : who == REFEREE_1 ? FIELD[h % NFIELD] : "not new");
     fprintf(sink, "recommendation    %s\n", DECISION_FORM[decision]);
     fprintf(sink, "------------------------------------------------------------\n\n");
 
@@ -851,7 +865,7 @@ static int write_report(int who)
     if (unfinished) {
         pf(" It takes more than %ld step%s.", steps, steps == 1 ? "" : "s");
     } else {
-        char parts[3][64];
+        char parts[4][64];
         int np = 0;
         char t[32];
         if (observes)  { times(t, sizeof t, observes);  snprintf(parts[np++], 64, "observes %s", t); }
@@ -860,16 +874,45 @@ static int write_report(int who)
             number(t, sizeof t, leaks, 0);
             snprintf(parts[np++], 64, "leaks %s obstruction%s", t, leaks == 1 ? "" : "s");
         }
+        if (withdrawals) {
+            number(t, sizeof t, withdrawals, 0);
+            if (leaks)
+                snprintf(parts[np++], 64, "withdraws %s", t);
+            else
+                snprintf(parts[np++], 64, "withdraws %s obstruction%s", t,
+                         withdrawals == 1 ? "" : "s");
+        }
         pf(" It takes %ld step%s", steps, steps == 1 ? "" : "s");
         if (np == 0)      pf(" and does not publish.");
         else if (np == 1) pf(" and %s.", parts[0]);
         else if (np == 2) pf(", %s and %s.", parts[0], parts[1]);
-        else              pf(", %s, %s and %s.", parts[0], parts[1], parts[2]);
+        else if (np == 3) pf(", %s, %s and %s.", parts[0], parts[1], parts[2]);
+        else              pf(", %s, %s, %s and %s.", parts[0], parts[1], parts[2], parts[3]);
     }
     pend("");
 
     pf("%s", who == REFEREE_1 ? WORN[(h / NFIELD) % NWORN] : WORN2[(h / NFIELD) % NWORN2]);
     pend("");
+
+    if (erratum_depth) {
+        pf("The manuscript is an erratum to [%s]", erratum_chain[0]);
+        for (int i = 1; i < erratum_depth; i++)
+            pf(", which is an erratum to [%s]", erratum_chain[i]);
+        if (erratum_missing)
+            pf(". I have read the corrections alone.");
+        else if (erratum_depth == 1)
+            pf(". I have read it, as corrected. I had not read it before.");
+        else
+            pf(". I have read [%s], as corrected. I had not read it before.",
+               erratum_chain[erratum_depth - 1]);
+        pend("");
+    }
+
+    if (retract_line) {
+        pf("The manuscript was retracted on line" NB "%d. I have reviewed it anyway.",
+           retract_line);
+        pend("");
+    }
 
     char buf[128], n[32];
 
@@ -916,6 +959,11 @@ static int write_report(int who)
                mark[i].cite, mark[i].cite);
             comment();
         }
+    if (erratum_missing) {
+        const char *last = erratum_chain[erratum_depth - 1];
+        pf("The erratum corrects [%s]. There is no [%s].", last, last);
+        comment();
+    }
 
     for (int c = 0; c < ncycles; c++) {
         pf("%s The argument is circular.", cycles[c]);
@@ -1129,6 +1177,17 @@ static const char *shelf[MAX_PAPERS];
 static int nshelf;
 static char cite_from[MAX_CITES][64], cite_to[MAX_CITES][64];
 static int ncites;
+static char corrects_from[MAX_PAPERS][64], corrects_to[MAX_PAPERS][64];   /* errata */
+static int ncorrects;
+static const char *pulled[MAX_PAPERS];                                    /* retracted */
+static int npulled;
+
+static int is_pulled(const char *p)
+{
+    for (int i = 0; i < npulled; i++)
+        if (strcmp(pulled[i], p) == 0) return 1;
+    return 0;
+}
 
 static int held(const char *p)
 {
@@ -1137,15 +1196,19 @@ static int held(const char *p)
     return 0;
 }
 
-static int cited_by(const char *p, char *out, size_t cap)
+/* who cites p: "a, b, c" for the form; "a, b and c" for the prose */
+static int cited_by(const char *p, char *out, size_t cap, int prose)
 {
-    int n = 0;
+    int n = 0, total = 0;
+    for (int c = 0; c < ncites; c++)
+        if (strcmp(cite_to[c], p) == 0) total++;
     out[0] = '\0';
     for (int i = 0; i < nshelf; i++)
         for (int c = 0; c < ncites; c++)
             if (strcmp(cite_to[c], p) == 0 && strcmp(cite_from[c], shelf[i]) == 0) {
                 size_t l = strlen(out);
-                snprintf(out + l, cap - l, "%s%s", n ? ", " : "", shelf[i]);
+                snprintf(out + l, cap - l, "%s%s",
+                         !n ? "" : prose && n == total - 1 ? " and " : ", ", shelf[i]);
                 n++;
             }
     return n;
@@ -1183,10 +1246,23 @@ static int librarian(int argc, char **argv)
         const char *b = strrchr(argv[a], '/');
         b = b ? b + 1 : argv[a];
         shelf[nshelf++] = b;
-        char buf[4096];
+        char buf[4096], target[64];
+        int first = 1, erratum = 0, retracts = 0;
         while (fgets(buf, sizeof buf, f)) {
+            if (first && erratum_heading(buf, target, sizeof target)) {
+                snprintf(corrects_from[ncorrects], sizeof corrects_from[0], "%s", b);
+                snprintf(corrects_to[ncorrects], sizeof corrects_to[0], "%s", target);
+                ncorrects++;
+                erratum = 1;
+            }
+            first = 0;
+            if (erratum) continue;      /* an erratum's lines are not its paper */
             const char *at;
             const Phrase *p = match(buf, &at);
+            if (p && p->op == RETRACT_ && !retracts) {
+                pulled[npulled++] = b;
+                retracts = 1;
+            }
             if (!p || p->op != CITEFILE_ || ncites >= MAX_CITES) continue;
             const char *s = at + strlen(p->text), *t = strchr(s, ']');
             if (!t) continue;
@@ -1236,6 +1312,8 @@ static int librarian(int argc, char **argv)
     fprintf(sink, "papers cited      %d\n", ncited);
     fprintf(sink, "not cited         %d\n", nshelf - ncited);
     fprintf(sink, "not held          %d\n", nmissing);
+    fprintf(sink, "errata            %d\n", ncorrects);
+    fprintf(sink, "retracted         %d\n", npulled);
     fprintf(sink, "h-index           %d\n", h_index);
     fputs("------------------------------------------------------------\n", sink);
     if (nindex) {
@@ -1243,9 +1321,9 @@ static int librarian(int argc, char **argv)
         for (int pass = 0; pass < 2; pass++)
             for (int i = 0; i < nindex; i++) {
                 if (held(catalogue[i]) != !pass) continue;
-                int n = cited_by(catalogue[i], list, sizeof list);
+                int n = cited_by(catalogue[i], list, sizeof list, 0);
                 fprintf(sink, "%5d  %-19s %s%s\n", n, catalogue[i], list,
-                        pass ? "  (not held)" : "");
+                        pass ? "  (not held)" : is_pulled(catalogue[i]) ? "  (retracted)" : "");
             }
         fputs("------------------------------------------------------------\n", sink);
     }
@@ -1264,8 +1342,23 @@ static int librarian(int argc, char **argv)
 
     for (int i = 0; i < nindex; i++)
         if (!held(catalogue[i])) {
-            cited_by(catalogue[i], list, sizeof list);
+            cited_by(catalogue[i], list, sizeof list, 1);
             pf("[%s] is cited by %s. The library does not hold it.", catalogue[i], list);
+            pend("");
+        }
+
+    for (int i = 0; i < nshelf; i++)
+        for (int c = 0; c < ncorrects; c++)
+            if (strcmp(corrects_from[c], shelf[i]) == 0)
+                pf("%s%s corrects %s.", plen ? " " : "", shelf[i], corrects_to[c]);
+    if (plen) pend("");
+
+    for (int i = 0; i < nshelf; i++)
+        if (is_pulled(shelf[i])) {
+            if (cited_by(shelf[i], list, sizeof list, 1))
+                pf("%s has been retracted. It is still cited, by %s.", shelf[i], list);
+            else
+                pf("%s has been retracted.", shelf[i]);
             pend("");
         }
 

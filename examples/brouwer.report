@@ -1,0 +1,28 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        brouwer.sheaf
+lines             16
+steps             10
+hypotheses open   0
+claims            0 checked
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             P
+result            withdrawn
+recommendation    MAJOR REVISION
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "Theorem 1. Every continuous map of the
+disc to itself has a fixed point." It takes 10 steps, leaks one
+obstruction and withdraws one.
+
+The result was not available to me. I have read the proof closely.
+
+The manuscript was retracted on line 8. I have reviewed it anyway.
+
+1. Line 8 is commentary, and its "retraction" retracts the
+   manuscript. Please move it out of the proof.
+
+Recommendation: major revision.
+

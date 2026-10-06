@@ -1,0 +1,16 @@
+Theorem 1. Every continuous map of the disc to itself has a fixed point.
+
+Suppose 1, the rank of H^1 of the circle.
+R^1 observe.
+
+Assume for contradiction that f moves every point.
+Then the ray from f(x) through x meets the boundary,
+and this gives a retraction of the disc onto its boundary circle.
+Suppose 1, the rank of H^1 of the circle.
+Suppose 0, the rank of H^1 of the disc.
+Restrict.
+Contradiction.
+
+Hence f has a fixed point.
+R^1 publish.
+QED.

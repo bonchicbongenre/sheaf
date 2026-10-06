@@ -62,19 +62,138 @@ static FILE *the_reader;
 
 static void index_source(void);
 
-/* read -- an impurity. the source is the initial object. the reader is the other. */
-static int read_source(const char *file)
+/* the lines of a file, as written. -1 if it is not there. */
+static int read_lines(const char *file, char ***out)
 {
     FILE *f = fopen(file, "r");
     if (!f) return -1;
+    int n = 0, cap = 64;
+    char **v = malloc((size_t)cap * sizeof *v);
     char buf[4096];
-    while (fgets(buf, sizeof buf, f) && nlines < MAX_LINES) {
+    while (v && fgets(buf, sizeof buf, f) && n < MAX_LINES) {
         size_t len = strlen(buf);
         while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
             buf[--len] = '\0';
-        lines[nlines++] = strdup(buf);
+        if (n == cap) {
+            char **w = realloc(v, (size_t)(cap *= 2) * sizeof *v);
+            if (!w) break;
+            v = w;
+        }
+        v[n++] = strdup(buf);
     }
     fclose(f);
+    *out = v;
+    return v ? n : -1;
+}
+
+/*
+ * An erratum is the paper it corrects. Its first line names the
+ * paper: "Erratum to [storage.sheaf]." (or "Corrigendum to [...]").
+ * Each line "Line 13 should read: ..." replaces that line of the
+ * paper, and "Line 13 should be deleted." leaves it blank. Nothing
+ * else in an erratum is part of the paper. An erratum to an erratum
+ * corrects the erratum, which then corrects its paper: eight deep at
+ * most.
+ */
+#define ERRATA_DEPTH 8
+
+static char erratum_chain[ERRATA_DEPTH][64];  /* what the manuscript corrects, in turn */
+static int  erratum_depth;
+static int  erratum_missing;                  /* and the last of them is not there */
+static int  corrections;                      /* lines the manuscript itself corrects */
+
+static int erratum_heading(const char *ln, char *name, size_t cap)
+{
+    const char *s = NULL;
+    while (isspace((unsigned char)*ln)) ln++;
+    if (strncasecmp(ln, "erratum to [", 12) == 0) s = ln + 12;
+    else if (strncasecmp(ln, "corrigendum to [", 16) == 0) s = ln + 16;
+    const char *t = s ? strchr(s, ']') : NULL;
+    if (!t) return 0;
+    size_t n = (size_t)(t - s);
+    if (n >= cap) n = cap - 1;
+    memcpy(name, s, n);
+    name[n] = '\0';
+    return 1;
+}
+
+/* "Line 13 should read: ...": 13, and the text. 0 if it is not a correction. */
+static long correction(const char *ln, const char **text)
+{
+    while (isspace((unsigned char)*ln)) ln++;
+    if (strncasecmp(ln, "line ", 5) != 0 || !isdigit((unsigned char)ln[5]))
+        return 0;
+    char *end;
+    long k = strtol(ln + 5, &end, 10);
+    if (k < 1 || k > MAX_LINES)
+        return 0;
+    if (strncasecmp(end, " should read:", 13) == 0) {
+        end += 13;
+        while (*end == ' ') end++;
+        *text = end;
+        return k;
+    }
+    if (strncasecmp(end, " should be deleted", 18) == 0) {
+        *text = "";
+        return k;
+    }
+    return 0;
+}
+
+/* the text as it should read, out of its quotation marks */
+static char *as_corrected(const char *s)
+{
+    size_t n = strlen(s);
+    if (n >= 2 && s[0] == '"' && s[n - 1] == '"') {
+        char *t = malloc(n - 1);
+        if (t) { memcpy(t, s + 1, n - 2); t[n - 2] = '\0'; }
+        return t;
+    }
+    return strdup(s);
+}
+
+/* read -- an impurity. the source is the initial object. the reader is the other. */
+static int read_source(const char *file)
+{
+    char **v, name[64], path[1200];
+    int n = read_lines(file, &v);
+    if (n < 0) return -1;
+    const char *slash = strrchr(file, '/');
+    int dir = slash ? (int)(slash - file) + 1 : 0;
+
+    while (n > 0 && erratum_depth < ERRATA_DEPTH && !erratum_missing &&
+           erratum_heading(v[0], name, sizeof name)) {
+        snprintf(erratum_chain[erratum_depth++], sizeof erratum_chain[0], "%s", name);
+        snprintf(path, sizeof path, "%.*s%s", dir, file, name);
+        char **t;
+        int m = read_lines(path, &t);
+        if (m < 0) { t = NULL; m = 0; erratum_missing = 1; }
+        for (int i = 1; i < n; i++) {
+            const char *text;
+            long k = correction(v[i], &text);
+            if (!k) continue;
+            if (k > m) {
+                /* a line the paper does not have: it is extended to it */
+                char **w = realloc(t, (size_t)k * sizeof *t);
+                if (!w) continue;
+                t = w;
+                while (m < k) t[m++] = strdup("");
+            }
+            free(t[k - 1]);
+            t[k - 1] = as_corrected(text);
+            if (erratum_depth == 1) corrections++;
+        }
+        for (int i = 0; i < n; i++) free(v[i]);
+        free(v);
+        v = t;
+        n = m;
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (nlines < MAX_LINES) lines[nlines++] = v[i];
+        else free(v[i]);
+    }
+    free(v);
     index_source();
     return 0;
 }
@@ -133,7 +252,7 @@ enum {
     READ_,
     YONEDA_, NONSENSE_, SIMILAR_,
     ASSUME_, CONTRA_,
-    CITEFILE_
+    CITEFILE_, RETRACT_
 };
 
 typedef struct {
@@ -187,6 +306,8 @@ static const Phrase PH[] = {
     { "contradiction",                 CONTRA_,   0 },
     /* the literature: a citation is not a reading */
     { "by [",                          CITEFILE_, 0 },
+    /* the record: a retraction withdraws what has not yet leaked */
+    { "retract",                       RETRACT_,  0 },
     /* abbreviations -- the working mathematician's shorthand */
     { "WLOG",                          POP_,   0 },
     { "wlog",                          POP_,   0 },
@@ -493,7 +614,11 @@ typedef struct {
     int           repeat_line; /* and the line it came from */
     long          repeat_degree;
     int           contra;      /* 1 reached, 2 from nothing assumed, 3 nothing contradicts */
+    int           withdrawn;   /* an obstruction that would have leaked, after a retraction */
 } Event;
+
+/* the paper has been retracted. what it has leaked stays leaked. */
+static int retracted;
 
 /*
  * Where a jump sends the reader: a named line ("Case 2"), or a
@@ -552,7 +677,9 @@ static void perform(int line, Event *e, FILE *derived, int *running)
         e->degree = degree;
         e->gave = 1;
         e->given = v;
-        if (degree >= 1 && derived)
+        if (degree >= 1 && retracted)
+            e->withdrawn = 1;
+        else if (degree >= 1 && derived)
             fprintf(derived, "H^%ld(X,F) = %lld\n", degree, v);
         /* R^0 = Gamma. pop. discard. not implemented. */
     } else {
@@ -660,7 +787,9 @@ static void perform(int line, Event *e, FILE *derived, int *running)
                 push(glued);
                 e->glue = glued;
                 e->b1 = b1;
-                if (!glued && derived) {
+                if (!glued && retracted) {
+                    e->withdrawn = 1;
+                } else if (!glued && derived) {
                     fprintf(derived, "H^1(U,Z) = Z^%d; the class is (", b1);
                     for (int i = 0; i < b1; i++)
                         fprintf(derived, "%s%lld", i ? ", " : "", cls[i]);
@@ -698,10 +827,15 @@ static void perform(int line, Event *e, FILE *derived, int *running)
                     e->b1 = again.b1;
                     e->discharged = again.discharged;
                     e->contra = again.contra;
+                    e->withdrawn = again.withdrawn;
                 }
                 break;
             case CITEFILE_:
                 /* by [fermat.sheaf]: cited. not read. */
+                break;
+            case RETRACT_:
+                /* withdrawn. it is still read. */
+                retracted = 1;
                 break;
             case ASSUME_:
                 /* everything from here is derived from what is assumed */

@@ -20,7 +20,7 @@ var OP = {
   LOAD: 9, STORE: 10, EMIT: 11, PRINT: 12, JMP: 13, JZ: 14, JNZ: 15,
   HALT: 16, NOP: 17, CALL: 18, RET: 19, LOOP: 20, REPEAT: 21,
   COVER: 22, TRANS: 23, GLUE: 24, READ: 25,
-  YONEDA: 26, NONSENSE: 27, SIMILAR: 28, ASSUME: 29, CONTRA: 30, CITEFILE: 31
+  YONEDA: 26, NONSENSE: 27, SIMILAR: 28, ASSUME: 29, CONTRA: 30, CITEFILE: 31, RETRACT: 32
 };
 
 /* the phrase table, in the C order: the order breaks ties */
@@ -39,7 +39,7 @@ var PH = [
   ['left to the reader', OP.READ, 0],
   ['by yoneda', OP.YONEDA, 0], ['by abstract nonsense', OP.NONSENSE, 0], ['similarly', OP.SIMILAR, 0],
   ['assume for contradiction', OP.ASSUME, 0], ['contradiction', OP.CONTRA, 0],
-  ['by [', OP.CITEFILE, 0],
+  ['by [', OP.CITEFILE, 0], ['retract', OP.RETRACT, 0],
   ['WLOG', OP.POP, 0], ['wlog', OP.POP, 0], ['iff', OP.JZ, 1], ['cf.', OP.JMP, 1],
   ['cf ', OP.JMP, 1], ['op.', OP.SWAP, 0], ['resp.', OP.DUP, 0], ['TFAE', OP.NOP, 0],
   ['NTS', OP.NOP, 0], ['WTS', OP.NOP, 0], ['RTP', OP.NOP, 0], ['s.t.', OP.NOP, 0]
@@ -88,14 +88,88 @@ function scanint(s, i) {
   return 0n;
 }
 
+/* ---- the source, and its errata ---- */
+
+function has(library, name) {
+  return !!library && Object.prototype.hasOwnProperty.call(library, name);
+}
+
+function splitLines(text) {
+  var lines = text.split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  return lines.slice(0, MAX_LINES).map(function (l) { return l.replace(/[\r\n]+$/, ''); });
+}
+
+/*
+ * An erratum is the paper it corrects. "Erratum to [storage.sheaf]."
+ * (or "Corrigendum to [...]") names it; "Line 13 should read: ..."
+ * replaces a line; "Line 13 should be deleted." blanks one. An erratum
+ * to an erratum corrects the erratum, which then corrects its paper:
+ * eight deep at most. library: name -> text, the papers beside it.
+ */
+var ERRATA_DEPTH = 8;
+
+function erratumHeading(ln) {
+  var s = 0, r;
+  while (isspace(ln[s])) s++;
+  if (ncaseeq(ln, s, 'erratum to [')) r = s + 12;
+  else if (ncaseeq(ln, s, 'corrigendum to [')) r = s + 16;
+  else return null;
+  var t = ln.indexOf(']', r);
+  return t < 0 ? null : ln.slice(r, Math.min(t, r + 63));
+}
+
+function correction(ln) {
+  var s = 0;
+  while (isspace(ln[s])) s++;
+  if (!ncaseeq(ln, s, 'line ') || !isdigit(ln[s + 5])) return null;
+  var e = s + 5;
+  while (isdigit(ln[e])) e++;
+  var k = Number(ln.slice(s + 5, e));
+  if (k < 1 || k > MAX_LINES) return null;
+  if (ncaseeq(ln, e, ' should read:')) {
+    e += 13;
+    while (ln[e] === ' ') e++;
+    return { k: k, text: ln.slice(e) };
+  }
+  if (ncaseeq(ln, e, ' should be deleted')) return { k: k, text: '' };
+  return null;
+}
+
+function asCorrected(s) {
+  return s.length >= 2 && s[0] === '"' && s[s.length - 1] === '"' ? s.slice(1, -1) : s;
+}
+
+function readSource(source, library) {
+  var v = splitLines(source), chain = [], missing = false, corrections = 0, name;
+  while (v.length > 0 && chain.length < ERRATA_DEPTH && !missing &&
+         (name = erratumHeading(v[0])) !== null) {
+    chain.push(name);
+    var t = [];
+    if (has(library, name)) t = splitLines(library[name]);
+    else missing = true;
+    for (var i = 1; i < v.length; i++) {
+      var c = correction(v[i]);
+      if (!c) continue;
+      while (t.length < c.k) t.push('');   /* a line the paper does not have */
+      t[c.k - 1] = asCorrected(c.text);
+      if (chain.length === 1) corrections++;
+    }
+    v = t;
+  }
+  return { lines: v.slice(0, MAX_LINES), chain: chain, missing: missing, corrections: corrections };
+}
+
 /* ---- the machine ---- */
 
-function Machine(source, reader) {
-  var lines = source.split('\n');
-  if (lines.length && lines[lines.length - 1] === '') lines.pop();
-  lines = lines.slice(0, MAX_LINES).map(function (l) { return l.replace(/[\r\n]+$/, ''); });
+function Machine(source, reader, library) {
+  var src = readSource(source, library), lines = src.lines;
 
   var m = this;
+  m.erratumChain = src.chain;
+  m.erratumMissing = src.missing;
+  m.corrections = src.corrections;
+  m.retracted = false;   /* what it has leaked stays leaked */
   m.lines = lines;
   m.nlines = lines.length;
   m.stk = [];
@@ -283,7 +357,7 @@ Machine.prototype.fresh = function (line) {
     topBefore: m.stk.length > 0 ? m.stk[m.stk.length - 1] : 0n,
     underflows: 0, gave: 0, given: 0n, next: 0, deferred: 0,
     target: NOWHERE, unresolved: 0, cite: '', glue: NOWHERE, b1: 0,
-    discharged: 0, repeat: null, repeatLine: NOWHERE, repeatDegree: -1, contra: 0
+    discharged: 0, repeat: null, repeatLine: NOWHERE, repeatDegree: -1, contra: 0, withdrawn: 0
   };
 };
 
@@ -316,7 +390,8 @@ Machine.prototype.perform = function (line, e, derived, run) {
   if ((degree = tryDerived(ln)) >= 0) {
     var v = m.pop();
     e.degree = degree; e.gave = 1; e.given = v;
-    if (degree >= 1 && derived) derived.push('H^' + degree + '(X,F) = ' + v + '\n');
+    if (degree >= 1 && m.retracted) e.withdrawn = 1;
+    else if (degree >= 1 && derived) derived.push('H^' + degree + '(X,F) = ' + v + '\n');
   } else {
     var r = m.match(ln), p = r.p, at = r.at;
     e.p = p; e.at = at;
@@ -385,7 +460,8 @@ Machine.prototype.perform = function (line, e, derived, run) {
         for (var q = 0; q < cls.length; q++) if (cls[q]) glued = 0;
         m.push(BigInt(glued));
         e.glue = glued; e.b1 = cls.length;
-        if (!glued && derived)
+        if (!glued && m.retracted) e.withdrawn = 1;
+        else if (!glued && derived)
           derived.push('H^1(U,Z) = Z^' + cls.length + '; the class is (' + cls.join(', ') + ')\n');
         break;
       }
@@ -407,6 +483,7 @@ Machine.prototype.perform = function (line, e, derived, run) {
           e.gave = again.gave; e.given = again.given;
           e.glue = again.glue; e.b1 = again.b1; e.discharged = again.discharged;
           e.contra = again.contra;
+          e.withdrawn = again.withdrawn;
         }
         break;
       case OP.ASSUME:
@@ -430,6 +507,10 @@ Machine.prototype.perform = function (line, e, derived, run) {
       case OP.CITEFILE:
         /* by [fermat.sheaf]: cited. not read. */
         break;
+      case OP.RETRACT:
+        /* withdrawn. it is still read. */
+        m.retracted = true;
+        break;
       }
     }
   }
@@ -439,8 +520,8 @@ Machine.prototype.perform = function (line, e, derived, run) {
  * The author. stdout is empty. stderr carries what leaks.
  * The browser stops after `limit` lines, so it can go on.
  */
-function run(source, readerText, limit) {
-  var m = new Machine(source, readerText === undefined ? null : readerText);
+function run(source, readerText, limit, library) {
+  var m = new Machine(source, readerText === undefined ? null : readerText, library);
   var derived = [], read = 0, more;
   limit = limit || 1000000;
   do { more = m.step(derived, function () { read++; }); } while (more && read < limit);
@@ -553,13 +634,13 @@ var VERDICT = [
 ];
 
 /*
- * library: the names of the papers beside the manuscript, where its
- * citations are looked for.
+ * library: name -> text, the papers beside the manuscript, where its
+ * citations and its errata are looked for.
  */
 function review(source, name, library) {
-  var M = new Machine(source, null);
+  library = library || {};
+  var M = new Machine(source, null, library);
   var nl = M.nlines, mark = [], i;
-  library = library || [];
   for (i = 0; i < (nl || 1); i++)
     mark.push({ seen: 0, prose: 0, underflow: 0, code: '', falseClaim: 0, op: 0, phrase: '',
                 target: 0, sent: 0, word: '', claim: '', denial: '', cite: '',
@@ -567,6 +648,7 @@ function review(source, name, library) {
                 noContra: 0, explosion: 0, cited: '' });
 
   var linesRead = 0, steps = 0, emptySteps = 0, observes = 0, publishes = 0, leaks = 0;
+  var withdrawals = 0, retractLine = 0;
   var claimsChecked = 0, claimsFalse = 0, haveSection = 0, haveObstruction = 0;
   var section = 0n, obstruction = 0n, unfinished = 0, halted = 0;
 
@@ -630,13 +712,15 @@ function review(source, name, library) {
 
     if (e.degree >= 0) {
       steps++;
-      if (e.degree >= 1) leaks++;
+      if (e.degree >= 1 && e.withdrawn) withdrawals++;
+      else if (e.degree >= 1) leaks++;
       else if (cistrstr(e.text, 'publish') >= 0) publishes++;
       else observes++;
     } else if (e.p) {
       var p = e.p, q = e.repeat || p;
       steps++;
-      if (e.repeatDegree >= 1) leaks++;
+      if (e.repeatDegree >= 1 && e.withdrawn) withdrawals++;
+      else if (e.repeatDegree >= 1) leaks++;
       else if (e.repeatDegree === 0) {
         if (cistrstr(M.lines[e.repeatLine], 'publish') >= 0) publishes++; else observes++;
       }
@@ -644,6 +728,7 @@ function review(source, name, library) {
       if (q.op === OP.EMIT) observes++;
       if (q.op === OP.PRINT) publishes++;
       if (q.op === OP.HALT) halted = 1;
+      if (q.op === OP.RETRACT && !retractLine) retractLine = e.line + 1;
       if (p.op === OP.YONEDA) mk.yoneda = 1;
       if (e.discharged > mk.discharged) mk.discharged = e.discharged;
       if (p.op === OP.SIMILAR && e.repeatLine !== NOWHERE && !mk.similarOf) mk.similarOf = e.repeatLine + 1;
@@ -654,7 +739,7 @@ function review(source, name, library) {
         var s0 = e.at + p.text.length, t0 = e.text.indexOf(']', s0);
         if (t0 >= 0) {
           mk.cited = e.text.slice(s0, Math.min(t0, s0 + 63));
-          if (library.indexOf(mk.cited) < 0) {
+          if (!has(library, mk.cited)) {
             mk.dangling = 1;
             mk.danglingOp = OP.CALL;
             mk.cite = ('[' + mk.cited + ']').slice(0, 47);
@@ -688,7 +773,8 @@ function review(source, name, library) {
       if (p.op === OP.CALL && e.target !== NOWHERE) mark[e.target - 1].called = 1;
     }
 
-    if (e.glue === 0) leaks++;
+    if (e.glue === 0 && e.withdrawn) withdrawals++;
+    else if (e.glue === 0) leaks++;
     if (e.underflows) mk.underflow = 1;
     if (e.gave) {
       var deg = e.degree >= 0 ? e.degree : e.repeatDegree;
@@ -726,6 +812,7 @@ function review(source, name, library) {
 
   var anyDangling = 0;
   for (i = 0; i < nl; i++) if (mark[i].dangling) anyDangling = 1;
+  if (M.erratumMissing) anyDangling = 1;
 
   var labels = M.labels, unread = 0, l;
   for (l = 0; l < labels.length && !unfinished; l++)
@@ -832,6 +919,9 @@ function review(source, name, library) {
   out.push(who === REFEREE_1 ? 'EDITORIAL OFFICE -- REFEREE REPORT\n'
                              : 'EDITORIAL OFFICE -- REPORT OF REVIEWER 2\n', dash);
   out.push('manuscript        ' + base + '\n');
+  if (M.erratumChain.length)
+    out.push('erratum to        ' + M.erratumChain[0] + ', ' + M.corrections + ' line' +
+             (M.corrections === 1 ? '' : 's') + ' corrected\n');
   out.push('lines             ' + nl + '\n');
   if (unfinished) out.push('steps             ' + steps + ' (reading stopped)\n');
   else if (emptySteps) out.push('steps             ' + steps + ' (' + emptySteps + ' of them empty)\n');
@@ -842,7 +932,8 @@ function review(source, name, library) {
   out.push('citation graph    V ' + nv + ', E ' + ne + ', H^0 ' + pieces + ', H^1 ' + rank1 +
            ', chi ' + (nv - ne) + '\n');
   out.push('codes            ' + (codes || ' none') + '\n');
-  out.push('result            ' + (who === REFEREE_1 ? FIELD[h % FIELD.length] : 'not new') + '\n');
+  out.push('result            ' + (retractLine ? 'withdrawn'
+                                 : who === REFEREE_1 ? FIELD[h % FIELD.length] : 'not new') + '\n');
   out.push('recommendation    ' + DECISION_FORM[decision] + '\n');
   out.push(dash + '\n');
 
@@ -887,17 +978,36 @@ function review(source, name, library) {
     if (observes) parts.push('observes ' + times(observes));
     if (publishes) parts.push('publishes ' + times(publishes));
     if (leaks) parts.push('leaks ' + number(leaks, false) + ' obstruction' + (leaks === 1 ? '' : 's'));
+    if (withdrawals)
+      parts.push('withdraws ' + number(withdrawals, false) +
+                 (leaks ? '' : ' obstruction' + (withdrawals === 1 ? '' : 's')));
     pf(' It takes ' + steps + ' step' + (steps === 1 ? '' : 's'));
     if (parts.length === 0) pf(' and does not publish.');
     else if (parts.length === 1) pf(' and ' + parts[0] + '.');
     else if (parts.length === 2) pf(', ' + parts[0] + ' and ' + parts[1] + '.');
-    else pf(', ' + parts[0] + ', ' + parts[1] + ' and ' + parts[2] + '.');
+    else if (parts.length === 3) pf(', ' + parts[0] + ', ' + parts[1] + ' and ' + parts[2] + '.');
+    else pf(', ' + parts[0] + ', ' + parts[1] + ', ' + parts[2] + ' and ' + parts[3] + '.');
   }
   pend('');
 
   pf(who === REFEREE_1 ? WORN[Math.floor(h / FIELD.length) % WORN.length]
                        : WORN2[Math.floor(h / FIELD.length) % WORN2.length]);
   pend('');
+
+  var chain = M.erratumChain;
+  if (chain.length) {
+    pf('The manuscript is an erratum to [' + chain[0] + ']');
+    for (i = 1; i < chain.length; i++) pf(', which is an erratum to [' + chain[i] + ']');
+    if (M.erratumMissing) pf('. I have read the corrections alone.');
+    else if (chain.length === 1) pf('. I have read it, as corrected. I had not read it before.');
+    else pf('. I have read [' + chain[chain.length - 1] + '], as corrected. I had not read it before.');
+    pend('');
+  }
+
+  if (retractLine) {
+    pf('The manuscript was retracted on line' + NB + retractLine + '. I have reviewed it anyway.');
+    pend('');
+  }
 
   if (who === REVIEWER_2) { pf('The result is not new.'); comment(); }
 
@@ -934,6 +1044,7 @@ function review(source, name, library) {
     case OP.ASSUME: return 'assumes for contradiction';
     case OP.CONTRA: return 'declares a contradiction';
     case OP.CITEFILE: return 'cites a paper';
+    case OP.RETRACT: return 'retracts the manuscript';
     default: return 'says ' + mk.phrase;
     }
   }
@@ -966,6 +1077,11 @@ function review(source, name, library) {
          ' ' + mark[i].cite + '. There is no ' + mark[i].cite + '.');
       comment();
     }
+  if (M.erratumMissing) {
+    var lastPaper = chain[chain.length - 1];
+    pf('The erratum corrects [' + lastPaper + ']. There is no [' + lastPaper + '].');
+    comment();
+  }
 
   for (i = 0; i < cycles.length; i++) { pf(cycles[i] + ' The argument is circular.'); comment(); }
 
@@ -1116,12 +1232,15 @@ function editor(source, name, library) {
  * The h-index is the exit code.
  */
 function librarian(papers) {
-  var shelf = [], from = [], to = [];
+  var shelf = [], from = [], to = [], corrects = {}, pulled = [];
   papers.forEach(function (pp) {
     var b = pp.name.slice(pp.name.lastIndexOf('/') + 1);
     shelf.push(b);
-    pp.text.split('\n').forEach(function (ln) {
+    var lines = pp.text.split('\n'), target = erratumHeading(lines[0]);
+    if (target !== null) { corrects[b] = target; return; }   /* an erratum's lines are not its paper */
+    lines.forEach(function (ln) {
       var r = matchLine(ln);
+      if (r.p && r.p.op === OP.RETRACT && pulled.indexOf(b) < 0) pulled.push(b);
       if (!r.p || r.p.op !== OP.CITEFILE || to.length >= 4096) return;
       var s = r.at + r.p.text.length, t = ln.indexOf(']', s);
       if (t < 0) return;
@@ -1139,6 +1258,10 @@ function librarian(papers) {
     return shelf.filter(function (s) {
       return to.some(function (x, j) { return x === p && from[j] === s; });
     });
+  }
+  /* "a, b and c" */
+  function inProse(names) {
+    return names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
   }
 
   var cat = [], ncited = 0, nmissing = 0;
@@ -1182,6 +1305,8 @@ function librarian(papers) {
            'papers cited      ' + ncited + '\n',
            'not cited         ' + (shelf.length - ncited) + '\n',
            'not held          ' + nmissing + '\n',
+           'errata            ' + Object.keys(corrects).length + '\n',
+           'retracted         ' + pulled.length + '\n',
            'h-index           ' + hIndex + '\n', dash);
   if (cat.length) {
     out.push('cited  paper               cited by\n');
@@ -1190,7 +1315,7 @@ function librarian(papers) {
         if (held(c) === !!pass) return;
         var by = citedBy(c);
         out.push(lpad(String(by.length), 5) + '  ' + pad(c, 19) + ' ' + by.join(', ') +
-                 (pass ? '  (not held)' : '') + '\n');
+                 (pass ? '  (not held)' : pulled.indexOf(c) >= 0 ? '  (retracted)' : '') + '\n');
       });
     });
     out.push(dash);
@@ -1207,7 +1332,17 @@ function librarian(papers) {
   pend();
   cat.forEach(function (c) {
     if (held(c)) return;
-    para = '[' + c + '] is cited by ' + citedBy(c).join(', ') + '. The library does not hold it.';
+    para = '[' + c + '] is cited by ' + inProse(citedBy(c)) + '. The library does not hold it.';
+    pend();
+  });
+  shelf.forEach(function (s) {
+    if (has(corrects, s)) para += (para ? ' ' : '') + s + ' corrects ' + corrects[s] + '.';
+  });
+  if (para) pend();
+  shelf.forEach(function (s) {
+    if (pulled.indexOf(s) < 0) return;
+    var by = citedBy(s);
+    para = s + ' has been retracted.' + (by.length ? ' It is still cited, by ' + inProse(by) + '.' : '');
     pend();
   });
   para = 'The h-index of the library is ' + hIndex + '.'; pend();

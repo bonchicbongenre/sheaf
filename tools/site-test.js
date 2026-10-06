@@ -10,9 +10,10 @@ let pass = 0, fail = 0;
 const read = (p) => (fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '');
 
 for (const dir of ['examples', 'submissions']) {
-  // the papers beside the manuscript, where its citations are looked for
-  const library = fs.readdirSync(path.join(root, dir));
-  for (const f of library.slice().sort()) {
+  // the papers beside the manuscript, where its citations and errata are looked for
+  const library = {};
+  for (const f of fs.readdirSync(path.join(root, dir))) library[f] = fs.readFileSync(path.join(root, dir, f), 'utf8');
+  for (const f of Object.keys(library).sort()) {
     if (!f.endsWith('.sheaf')) continue;
     const name = f.slice(0, -6);
     const text = fs.readFileSync(path.join(root, dir, f), 'utf8');
@@ -31,7 +32,7 @@ for (const dir of ['examples', 'submissions']) {
     // the author, with a reader who gives nothing; submissions do not end
     let ok2 = true;
     if (dir === 'examples') {
-      const run = sheaf.run(text, '');
+      const run = sheaf.run(text, '', undefined, library);
       ok2 = run.finished && run.stdout === '' && run.stderr === read(path.join(root, dir, name + '.derived'));
     }
 

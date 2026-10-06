@@ -323,6 +323,12 @@ footer { margin-top: 3rem; text-align: center; }
 
 <p>The librarian reads every citation in the library and none of the papers, and writes the citation index. Its exit code is the h-index, so a library anyone cites fails, and a library nobody cites succeeds. Real papers write "cf. [12]". In sheaf <code>cf.</code> is a jump, and it sends the reader to line 13.</p>
 
+<h2>Errata and retractions</h2>
+
+<p>A paper that begins <code>Erratum to [storage.sheaf].</code> is that paper, corrected, one <code>Line 13 should read: ...</code> at a time. The author regrets the error, and the regret does nothing. storage.sheaf stays wrong. Its erratum makes it publish 42, and introduces a new error: "recovered" declares a cover. The erratum to the erratum fixes that.</p>
+
+<p><code>Retract.</code> withdraws the paper. It still runs, but what it would leak from then on is withdrawn. Brouwer's fixed point theorem is proved by contradiction through "a retraction of the disc onto its boundary circle", and that line retracts the paper. Nash cites it. The referee, who does not read what is cited, has it somewhere. The librarian knows.</p>
+
 <h2>Gluing</h2>
 
 <p><code>Cover the circle by U1, U2 and U3.</code> The transitions on the overlaps are a Cech 1-cochain on the nerve, and <code>By gluing.</code> asks whether it is a coboundary. On the circle the branches of the logarithm do not glue, and the class leaks: <code>H^1(U,Z) = Z^1; the class is (1)</code>. With two arcs the nerve is one edge, everything glues, and the circle has no hole.</p>
@@ -463,7 +469,11 @@ function shelfOf() {
   else papers[papers.map(function (p) { return p.name; }).indexOf(manuscriptName())].text = src.value;
   return papers;
 }
-function library() { return shelfOf().map(function (p) { return p.name; }); }
+function library() {
+  var lib = {};
+  shelfOf().forEach(function (p) { lib[p.name] = p.text; });
+  return lib;
+}
 function clear() {
   out.textContent = ''; err.textContent = ''; said.textContent = '';
   report.hidden = true; report.textContent = '';
@@ -482,7 +492,7 @@ load();
 
 document.getElementById('run').addEventListener('click', function () {
   clear();
-  var r = sheaf.run(src.value, reader.value, 1000000);
+  var r = sheaf.run(src.value, reader.value, 1000000, library());
   out.textContent = r.stdout;
   err.textContent = r.stderr;
   said.textContent = r.finished

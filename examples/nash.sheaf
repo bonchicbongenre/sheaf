@@ -1,0 +1,6 @@
+Non-Cooperative Games.
+
+Every finite game has an equilibrium point.
+By [brouwer.sheaf], a continuous map that improves each strategy has a fixed point.
+A fixed point of it is an equilibrium point.
+QED.

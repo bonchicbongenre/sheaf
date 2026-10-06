@@ -1,0 +1,31 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        storage-erratum.sheaf
+erratum to        storage.sheaf, 1 line corrected
+lines             20
+steps             9 (1 of them empty)
+hypotheses open   0
+claims            1 checked, 0 false
+citation graph    V 1, E 0, H^0 1, H^1 0, chi 1
+codes             P W
+result            on file
+recommendation    MAJOR REVISION
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "We establish a local-to-global principle."
+It takes 9 steps and publishes once.
+
+The result did not reach me. I have checked what I could.
+
+The manuscript is an erratum to [storage.sheaf]. I have read it,
+as corrected. I had not read it before.
+
+1. Line 13 is commentary, and its "recovered" declares a cover.
+   Please move it out of the proof.
+
+2. Line 8 is well known. Please give a reference.
+
+Recommendation: major revision.
+

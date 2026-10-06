@@ -6,6 +6,11 @@ var SHEAF_EXAMPLES = [
   "text": "We upload the following preprint to the arXiv.\n\nSuppose 42.\n\nThe preprint is 42 pages. The abstract\nis clear. The introduction is well-written.\nThe main theorem is on page 31. The proof\noccupies pages 31 through 38. The remaining\npages are references.\n\nClearly the result is novel.\nIt is well known that similar results\nexist in the literature.\n\nThe preprint appears on hep-th at 2 AM UTC.\n14 people receive the daily email.\n3 read the abstract. 1 opens the PDF.\nThe PDF loads to page 1. The reader\nscrolls to the theorem statement.\nThe reader closes the PDF.\n\nPublish.\n\nThe paper has 0 citations after 4 years.\nThe result is correct. The global sections\nare zero. The local data is perfect.\n\nQED.\n"
  },
  {
+  "name": "brouwer.sheaf",
+  "dir": "examples",
+  "text": "Theorem 1. Every continuous map of the disc to itself has a fixed point.\n\nSuppose 1, the rank of H^1 of the circle.\nR^1 observe.\n\nAssume for contradiction that f moves every point.\nThen the ray from f(x) through x meets the boundary,\nand this gives a retraction of the disc onto its boundary circle.\nSuppose 1, the rank of H^1 of the circle.\nSuppose 0, the rank of H^1 of the disc.\nRestrict.\nContradiction.\n\nHence f has a fixed point.\nR^1 publish.\nQED.\n"
+ },
+ {
   "name": "circle.sheaf",
   "dir": "examples",
   "text": "Theorem 1. The logarithm has no global branch on the circle.\n\nThree arcs, each a little more than a third of the circle.\nOn each arc the logarithm has a branch.\nGoing round, the branches disagree by one turn.\n\nCover the circle by U1, U2 and U3.\nThe transition on U1 and U2 is 0.\nThe transition on U2 and U3 is 0.\nThe transition on U3 and U1 is 1.\n\nBy gluing.\n\nThe value is zero.\n\nWLOG.\n\nThe branches do not glue. The obstruction is on stderr.\nIt is the winding number.\n\nQED.\n"
@@ -96,6 +101,11 @@ var SHEAF_EXAMPLES = [
   "text": "The long exact sequence in cohomology.\n\nGiven 0 -> F -> G -> H -> 0, the connecting\nhomomorphism delta produces:\n\n0 -> H^0(F) -> H^0(G) -> H^0(H) ->\n  H^1(F) -> H^1(G) -> H^1(H) -> ...\n\nSuppose 3.\nR^0 observe.\n\nSuppose 5.\nR^0 observe.\n\nSuppose 7.\nR^0 observe.\n\nThree global sections. All consumed. None visible.\nThe H^0 terms vanish into the implementation gap.\n\nNow the connecting homomorphism.\n\nSuppose 11.\nR^1 observe.\n\nSuppose 13.\nR^1 observe.\n\nSuppose 17.\nR^1 observe.\n\nThe first obstructions leak. Primes, because the stalks\nare local rings. The sequence is exact on stderr.\n\nSuppose 0.\nR^2 observe.\n\nHigher cohomology vanishes. The spectral sequence\ndegenerates at E_2. As expected.\n\nQED.\n"
  },
  {
+  "name": "nash.sheaf",
+  "dir": "examples",
+  "text": "Non-Cooperative Games.\n\nEvery finite game has an equilibrium point.\nBy [brouwer.sheaf], a continuous map that improves each strategy has a fixed point.\nA fixed point of it is an equilibrium point.\nQED.\n"
+ },
+ {
   "name": "nonsense.sheaf",
   "dir": "examples",
   "text": "Theorem 1. Everything follows.\n\nSuppose 1.\nSuppose 2.\nSuppose 3.\nTensor.\n\nBy abstract nonsense.\n\nQED.\n"
@@ -134,6 +144,16 @@ var SHEAF_EXAMPLES = [
   "name": "stopwatch.sheaf",
   "dir": "examples",
   "text": "Theorem 1. The answer is safe.\n\nSuppose 6.\nSuppose 7.\nTensor.\n\nThe answer is on the stack. Nobody can read it.\nWe count down from it, to be careful.\n\nRecall.\nBy induction.\nSuppose 1.\nRestrict.\nThis completes the induction.\nWLOG.\n\nPublish.\n\nThe answer was never shown. It took as long as it took.\n\nQED.\n"
+ },
+ {
+  "name": "storage-erratum-erratum.sheaf",
+  "dir": "examples",
+  "text": "Erratum to [storage-erratum.sheaf].\n\nLine 3 should read: Line 13 should read: \"The value is retrieved, and it is 42.\"\n\nThe author regrets the error in the erratum.\n"
+ },
+ {
+  "name": "storage-erratum.sheaf",
+  "dir": "examples",
+  "text": "Erratum to [storage.sheaf].\n\nLine 13 should read: \"The value is recovered, and it is 42.\"\n\nThe author regrets the error.\n"
  },
  {
   "name": "storage.sheaf",
