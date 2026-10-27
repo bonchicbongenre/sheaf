@@ -10,15 +10,22 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{padding:3rem 16px 1.4rem;min-height:100svh;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);font:19px/1.6 var(--book);font-variant-numeric:oldstyle-nums}
-main,.by{width:100%;max-width:42rem;margin:0 auto}
+main,.by{width:100%;max-width:52rem;margin:0 auto}
 main{flex:1}
 header{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:1.5rem}
 header nav{font-size:.95rem}
 h1{font-size:1.6rem;font-weight:400}
 h1 a{color:inherit;text-decoration:none}
+h2{font-size:1.15rem;font-weight:400;font-variant-caps:small-caps;letter-spacing:.04em;color:var(--gold-base);margin:2.6rem 0 .7rem}
+h2.file{font:.95rem var(--typewriter);letter-spacing:0}
+p{margin-bottom:.9rem}
 a{color:var(--gold-accent);text-underline-offset:.15em}
-.name{font:.8rem var(--typewriter);color:var(--gold-base)}
-pre{font:.86rem/1.55 var(--typewriter);white-space:pre-wrap;overflow-wrap:break-word;margin-top:.4rem}
+code{font-family:var(--typewriter);font-size:.86rem}
+.wide{overflow-x:auto}
+table{border-collapse:collapse;width:100%;margin:.4rem 0 1rem;font-size:.95rem}
+th{text-align:left;font-weight:400;font-variant-caps:all-small-caps;letter-spacing:.04em;color:var(--gold-base);padding:0 .8rem .3rem 0;border-bottom:1px solid var(--rule)}
+td{padding:.3rem .8rem .3rem 0;vertical-align:top;border-bottom:1px solid var(--rule)}
+pre{font:.86rem/1.55 var(--typewriter);white-space:pre-wrap;overflow-wrap:break-word}
 .by{margin-top:3rem;text-align:right;font-size:.8rem}
 </style>
 </head>
@@ -30,7 +37,86 @@ pre{font:.86rem/1.55 var(--typewriter);white-space:pre-wrap;overflow-wrap:break-
   <nav><a href="docs.html">documentation</a></nav>
 </header>
 
-<p class="name">reference.sheaf</p>
+<h2>Instructions</h2>
+
+<p>Phrase matching is case-insensitive, leftmost-wins. Unrecognized words on the same line are ignored. The English is the paper. The computation is the proof.</p>
+
+<div class="wide"><table>
+<tr><th>Phrase</th><th>Abbrev</th><th>Instruction</th><th>Effect</th></tr>
+<tr><td><code>suppose N</code></td><td>| PUSH N</td><td>Introduce a hypothesis.</td></tr>
+<tr><td><code>trivially</code></td><td>| PUSH 0</td><td>The trivial case.</td></tr>
+<tr><td><code>without loss of generality</code></td><td><code>WLOG</code></td><td>POP</td><td>Discard. It doesn&rsquo;t matter.</td></tr>
+<tr><td><code>recall</code></td><td><code>resp.</code></td><td>DUP</td><td>Recall what we just established.</td></tr>
+<tr><td><code>by duality</code></td><td><code>op.</code></td><td>SWAP</td><td>The dual statement.</td></tr>
+<tr><td><code>direct sum</code></td><td>| ADD</td><td>Combine.</td></tr>
+<tr><td><code>restrict</code></td><td>| SUB</td><td>Restrict to a smaller space.</td></tr>
+<tr><td><code>tensor</code></td><td>| MUL</td><td>Tensor product.</td></tr>
+<tr><td><code>localize</code></td><td>| DIV</td><td>Localize at a prime.</td></tr>
+<tr><td><code>pullback</code></td><td>| LOAD</td><td>Pull back from the base.</td></tr>
+<tr><td><code>pushforward</code></td><td>| STORE</td><td>Push forward to the base.</td></tr>
+<tr><td><code>observe</code></td><td>| EMIT</td><td>Pop. Discard. Gamma is not implemented.</td></tr>
+<tr><td><code>publish</code></td><td>| PRINT</td><td>Pop. Discard. The referee is silent.</td></tr>
+<tr><td><code>R^i observe</code></td><td>| H^i</td><td>Right derived functor. See below.</td></tr>
+<tr><td><code>R^i publish</code></td><td>| H^i</td><td>Right derived functor. See below.</td></tr>
+<tr><td><code>see N</code></td><td><code>cf. N</code></td><td>JMP N</td><td>See proposition N.</td></tr>
+<tr><td><code>vacuously N</code></td><td><code>iff N</code></td><td>JZ N</td><td>Vacuously true. The premise is zero.</td></tr>
+<tr><td><code>nontrivially N</code></td><td>| JNZ N</td><td>The value is nontrivial.</td></tr>
+<tr><td><code>by lemma N</code></td><td><code>by proposition N</code>, <code>by corollary N</code>, <code>by claim N</code>, <code>by theorem N</code></td><td>CALL</td><td>Cite it. Go there, and come back.</td></tr>
+<tr><td><code>this proves the</code></td><td>| RET</td><td>Come back.</td></tr>
+<tr><td><code>by induction</code></td><td>| LOOP</td><td>Begin an induction.</td></tr>
+<tr><td><code>this completes the induction</code></td><td>| REPEAT</td><td>Begin again, while the top of the stack is nonzero.</td></tr>
+<tr><td><code>cover</code></td><td>| COVER</td><td>A new cover, by the opens named on the line: U1, U2, ...</td></tr>
+<tr><td><code>the transition</code></td><td>| TRANS</td><td>The transition on two opens: an integer.</td></tr>
+<tr><td><code>by gluing</code></td><td>| GLUE</td><td>1 if the transitions are a coboundary. Otherwise 0, and the class leaks.</td></tr>
+<tr><td><code>the triple overlap</code></td><td>| TRIPLE</td><td>The three opens named on the line meet: a triangle in the nerve.</td></tr>
+<tr><td><code>one checks the cocycle condition</code></td><td>| NOP</td><td>One does not. The referee does.</td></tr>
+<tr><td><code>sheafify</code></td><td><code>sheafification</code></td><td>NOP</td><td>The sheafification of a sheaf is the sheaf.</td></tr>
+<tr><td><code>left to the reader</code></td><td>| READ</td><td>The reader gives a number. Or nothing.</td></tr>
+<tr><td><code>by yoneda</code></td><td>| NOP</td><td>An object is its observations. None are kept.</td></tr>
+<tr><td><code>by abstract nonsense</code></td><td>| CLEAR</td><td>Every open hypothesis, discharged at once.</td></tr>
+<tr><td><code>similarly</code></td><td>| AGAIN</td><td>The last line that performed, performed again.</td></tr>
+<tr><td><code>assume for contradiction</code></td><td>| ASSUME</td><td>Everything from here is derived from what is assumed.</td></tr>
+<tr><td><code>contradiction</code></td><td>| CONTRA</td><td>Nonzero: the assumption is discarded, and its negation, 1, is proved.</td></tr>
+<tr><td><code>by [paper]</code></td><td>| CITE</td><td>Another paper is cited. It is not read.</td></tr>
+<tr><td><code>retract</code></td><td>| RETRACT</td><td>The paper is withdrawn. What it leaks from here is withdrawn with it.</td></tr>
+<tr><td><code>Erratum to [paper].</code></td><td><code>Corrigendum to [paper].</code></td><td>| First line only. The paper, corrected.</td></tr>
+<tr><td><code>Response to the referee, on [paper].</code></td><td>|</td><td>First line only. The paper, as revised.</td></tr>
+<tr><td><code>QED</code></td><td>| HALT</td><td>The proof is complete.</td></tr>
+<tr><td><code>clearly</code></td><td>| NOP</td><td>Obviously. Contributes nothing.</td></tr>
+<tr><td><code>it is well known</code></td><td><code>TFAE</code></td><td>NOP</td><td>Everyone knows this. Nobody cites it.</td></tr>
+<tr><td></td><td><code>NTS</code></td><td>NOP</td><td>Need to show. (Does not show.)</td></tr>
+<tr><td></td><td><code>WTS</code></td><td>NOP</td><td>Want to show. (Does not show.)</td></tr>
+<tr><td></td><td><code>RTP</code></td><td>NOP</td><td>Required to prove. (Does not prove.)</td></tr>
+<tr><td></td><td><code>s.t.</code></td><td>NOP</td><td>Such that. (Such what?)</td></tr>
+</table></div>
+
+<h2>False friends</h2>
+
+<p>The English is live. A phrase performs wherever it appears, inside any word, if it is the leftmost phrase on its line. Some ordinary words are instructions.</p>
+
+<div class="wide"><table>
+<tr><th>Word</th><th>Contains</th><th>Does</th></tr>
+<tr><td>seems, seen, seed, seek, foresee</td><td><code>see</code></td><td>Sends the reader to line 1, unless a number follows on the line.</td></tr>
+<tr><td>differ, different, difficult, differential, diffeomorphism</td><td><code>iff</code></td><td>If the stack is empty or zero, the same.</td></tr>
+<tr><td>observed, observer, observes</td><td><code>observe</code></td><td>Pops.</td></tr>
+<tr><td>published, publishes, publisher</td><td><code>publish</code></td><td>Pops.</td></tr>
+<tr><td>supposed, supposedly, presuppose</td><td><code>suppose</code></td><td>Pushes the next number on the line, or 0.</td></tr>
+<tr><td>restricted, restriction</td><td><code>restrict</code></td><td>Subtracts.</td></tr>
+<tr><td>tensors, tensored</td><td><code>tensor</code></td><td>Multiplies.</td></tr>
+<tr><td>localized, localizes</td><td><code>localize</code></td><td>Divides.</td></tr>
+<tr><td>recalled, recalls</td><td><code>recall</code></td><td>Duplicates.</td></tr>
+<tr><td>corresp.</td><td><code>resp.</code></td><td>Duplicates.</td></tr>
+<tr><td>stop. loop. top. develop.</td><td><code>op.</code></td><td>Swaps.</td></tr>
+<tr><td>comments, elements, points, coefficients</td><td><code>NTS</code></td><td>Nothing. It needs to show.</td></tr>
+<tr><td>smartphone</td><td><code>RTP</code></td><td>Nothing.</td></tr>
+<tr><td>the nearby lemmas</td><td><code>by lemma</code></td><td>Cites a lemma that is not there.</td></tr>
+<tr><td>and this proves the point</td><td><code>this proves the</code></td><td>Comes back from a lemma.</td></tr>
+<tr><td>discover, recovered, covered</td><td><code>cover</code></td><td>Declares a cover, by whatever opens the line names.</td></tr>
+<tr><td>the transitions</td><td><code>the transition</code></td><td>Sets a transition.</td></tr>
+<tr><td>cf. [12]</td><td><code>cf.</code></td><td>Sends the reader to line 13.</td></tr>
+</table></div>
+
+<h2 class="file">reference.sheaf</h2>
 <pre>A Reference for the Language.
 
 Phrase matching is case-insensitive, leftmost-wins.
