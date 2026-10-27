@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>sheaf</title>
 <meta name="description" content="The result is on the next page.">
 <meta property="og:title" content="sheaf">
@@ -13,259 +13,67 @@
 <meta name="twitter:title" content="sheaf">
 <meta name="twitter:description" content="The result is on the next page.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>">
+<link rel="stylesheet" href="tokens.css?4">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-:root {
-  --bg: #f5f0eb;
-  --surface: #fffcf8;
-  --border: #e0d8cf;
-  --border-light: #ece6de;
-  --text: #3a3530;
-  --text-soft: #8a8078;
-  --text-faint: #b5ada5;
-  --accent: #2a6e4e;
-  --accent-hover: #358a62;
-  --field-bg: #faf6f1;
-  --red: #c06050;
-  --label-accent: #7a6850;
-}
-
-[data-theme="dark"] {
-  --bg: #1a1816;
-  --surface: #242120;
-  --border: #3a3530;
-  --border-light: #2e2a28;
-  --text: #e0d8cf;
-  --text-soft: #8a8078;
-  --text-faint: #5a534a;
-  --accent: #4a9e72;
-  --accent-hover: #5db885;
-  --field-bg: #1e1c1a;
-  --red: #d08070;
-  --label-accent: #a09080;
-}
-
-body {
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3rem 1.5rem;
-  line-height: 1.6;
-  font-size: 1.08rem;
-}
-
-body, .desk, .pane, pre, textarea, input, select, button, h1, .theme-toggle {
-  transition: background 0.5s ease, color 0.5s ease, border-color 0.5s ease;
-}
-
-header, main, footer { width: 100%; max-width: 42rem; }
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 1.5rem;
-}
-
-h1 { font-size: 1.9rem; font-weight: 400; color: var(--text-soft); letter-spacing: -0.01em; }
-
-h2 {
-  font-size: 1.15rem;
-  font-weight: 400;
-  font-variant: small-caps;
-  letter-spacing: 0.04em;
-  color: var(--label-accent);
-  margin: 2.6rem 0 0.7rem;
-}
-
-p { margin-bottom: 0.9rem; }
-
-.lede { font-style: italic; color: var(--text-soft); margin-bottom: 1.6rem; }
-
-a { color: var(--accent); text-decoration: none; }
-a:hover { color: var(--accent-hover); text-decoration: underline; }
-
-code, pre, textarea, input, select, .backdrop {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.86rem;
-}
-
-.editor { position: relative; background: var(--surface); }
-.editor textarea, .backdrop {
-  padding: 1rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  letter-spacing: normal;
-  scrollbar-gutter: stable;
-}
-.backdrop {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  overflow: hidden;
-  color: transparent;
-  pointer-events: none;
-}
-.backdrop mark { color: transparent; border-radius: 2px; }
-mark.instruction { background: rgba(42, 110, 78, 0.13); }
-mark.friend { background: rgba(192, 96, 80, 0.30); }
-mark.derived { background: rgba(122, 104, 80, 0.22); }
-mark.heading { background: rgba(122, 104, 80, 0.13); }
-.legend { font-size: 0.88rem; color: var(--text-faint); margin: 0.2rem 0 0.9rem; }
-.legend mark { color: var(--text-soft); border-radius: 2px; padding: 0 0.15rem; }
-
-code { color: var(--label-accent); }
-
-.theme-toggle {
-  background: none;
-  border: none;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-family: inherit;
-  letter-spacing: 0.03em;
-}
-.theme-toggle:hover { color: var(--text-soft); }
-
-.desk {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  margin: 1.4rem 0 0.6rem;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--border-light);
-  background: var(--field-bg);
-}
-
-.row label {
-  width: 9.5rem;
-  flex-shrink: 0;
-  padding: 0.6rem 1rem;
-  font-size: 0.95rem;
-  color: var(--label-accent);
-}
-
-.row select, .row input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--text);
-  padding: 0.6rem 1rem;
-}
-
-textarea {
-  display: block;
-  position: relative;
-  width: 100%;
-  min-height: 19rem;
-  border: none;
-  border-bottom: 1px solid var(--border-light);
-  outline: none;
-  resize: vertical;
-  background: transparent;
-  color: var(--text);
-}
-
-.actions {
-  display: flex;
-  gap: 0.7rem;
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid var(--border-light);
-  background: var(--field-bg);
-}
-
-button.go {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  padding: 0.55rem 1.4rem;
-  font-family: inherit;
-  font-size: 1rem;
-  cursor: pointer;
-}
-button.go:hover { background: var(--accent-hover); }
-button.go.quiet { background: var(--border); color: var(--text); }
-button.go.quiet:hover { background: var(--border-light); }
-
-.panes { display: flex; }
-.pane { flex: 1; border-right: 1px solid var(--border-light); min-width: 0; }
-.pane:last-child { border-right: none; }
-.pane-label {
-  font-size: 0.8rem;
-  color: var(--text-faint);
-  padding: 0.4rem 1rem 0;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-.pane pre { min-height: 4.5rem; padding: 0.4rem 1rem 0.9rem; white-space: pre-wrap; color: var(--red); }
-
-.status {
-  font-size: 0.92rem;
-  color: var(--text-soft);
-  padding: 0.6rem 1rem;
-  border-top: 1px solid var(--border-light);
-  margin: 0;
-  min-height: 2.4rem;
-}
-
-pre.report {
-  padding: 1rem;
-  border-top: 1px solid var(--border-light);
-  background: var(--field-bg);
-  overflow-x: auto;
-  line-height: 1.45;
-}
-
-pre.sample {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.8rem 1rem;
-  margin: 0.4rem 0 1rem;
-  overflow-x: auto;
-}
-
-table { border-collapse: collapse; width: 100%; margin: 0.4rem 0 1rem; font-size: 0.95rem; }
-td { padding: 0.25rem 0.6rem 0.25rem 0; vertical-align: top; border-bottom: 1px solid var(--border-light); }
-td:first-child { white-space: nowrap; }
-
-footer { margin-top: 3rem; text-align: center; }
-.tagline { font-size: 1.15rem; margin-bottom: 0.6rem; }
-.note { font-size: 0.92rem; color: var(--text-faint); }
-
-@media (max-width: 560px) {
-  body { padding: 2rem 1rem; }
-  .row label { width: 7rem; padding: 0.6rem; }
-  .panes { flex-direction: column; }
-  .pane { border-right: none; border-bottom: 1px solid var(--border-light); }
+*{margin:0;padding:0;box-sizing:border-box}
+body{padding:3rem 16px 1.4rem;min-height:100svh;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);font:19px/1.6 var(--book);font-variant-numeric:oldstyle-nums}
+main,footer,.by{width:100%;max-width:42rem;margin:0 auto}
+main{flex:1}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:1.5rem}
+header nav{display:flex;align-items:baseline;gap:1.2rem;font-size:.95rem}
+h1{font-size:1.6rem;font-weight:400}
+.lede{color:var(--gold-base)}
+a{color:var(--gold-accent);text-underline-offset:.15em}
+button{font:inherit;color:var(--gold-base);background:none;border:0;cursor:pointer}
+.theme-toggle:hover,button.quiet:hover{color:var(--ink)}
+button:focus-visible{outline:1px solid var(--rule);outline-offset:4px}
+pre,textarea,input,select,.backdrop{font-family:var(--typewriter);font-size:.86rem}
+.desk{border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-top:1.4rem}
+.row{display:flex;align-items:center;border-bottom:1px solid var(--rule)}
+.row label{width:9.5rem;flex-shrink:0;padding:.6rem 1rem;font-size:.95rem;color:var(--gold-base);font-variant-caps:all-small-caps;letter-spacing:.04em}
+.row select,.row input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--ink);padding:.6rem 1rem}
+::placeholder{color:var(--gold-base);opacity:1}
+.editor{position:relative}
+.editor textarea,.backdrop{padding:1rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:break-word;letter-spacing:normal;scrollbar-gutter:stable}
+.backdrop{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;color:transparent;pointer-events:none}
+.backdrop mark{color:transparent;border-radius:2px}
+mark.instruction{background:var(--gold-wash)}
+mark.friend{background:var(--crimson-wash)}
+mark.derived{background:var(--longquan-wash)}
+mark.heading{background:var(--jun-wash)}
+.legend{margin-top:.6rem;font-size:.88rem;color:var(--gold-base)}
+.legend mark{color:var(--ink);border-radius:2px;padding:0 .15rem}
+textarea{display:block;position:relative;width:100%;min-height:19rem;border:0;border-bottom:1px solid var(--rule);outline:0;resize:vertical;background:transparent;color:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:.7rem;padding:.8rem 1rem;border-bottom:1px solid var(--rule)}
+button.go{background:var(--gold-accent);color:var(--paper);border-radius:5px;padding:.55rem 1.4rem;font-size:1rem}
+button.go.quiet{background:none;color:var(--gold-base);box-shadow:inset 0 0 0 1px var(--rule)}
+.panes{display:flex}
+.pane{flex:1;min-width:0;border-right:1px solid var(--rule)}
+.pane:last-child{border-right:0}
+.pane-label{padding:.4rem 1rem 0;font:.8rem var(--typewriter);color:var(--gold-base)}
+.pane pre{min-height:4.5rem;padding:.4rem 1rem .9rem;white-space:pre-wrap;color:var(--rust-base)}
+.status{min-height:2.4rem;padding:.6rem 1rem;border-top:1px solid var(--rule);font-size:.92rem}
+pre.report{padding:1rem;border-top:1px solid var(--rule);overflow-x:auto;line-height:1.45}
+footer{margin-top:3rem;text-align:center}
+.tagline{font-size:1.15rem}
+.by{margin-top:3rem;text-align:right;font-size:.8rem;font-family:var(--book)}
+@media (max-width:560px){
+body{padding-top:2rem}
+.row label{width:7rem;padding:.6rem}
+.panes{flex-direction:column}
+.pane{border-right:0;border-bottom:1px solid var(--rule)}
 }
 </style>
 </head>
 <body>
 
+<main>
 <header>
   <h1>sheaf</h1>
-  <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">dark</button>
+  <nav><a href="reference.html">reference</a><a href="docs.html">documentation</a><button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">dark</button></nav>
 </header>
 
-<main>
-
 <p class="lede">The local data is perfect. The stalks are correct. Gamma is not implemented.</p>
-
-<p>sheaf is a purely functional programming language. Haskell thinks it is functional. Haskell has IO. sheaf does not have IO. sheaf is functional.</p>
-
-<p>Its instructions are mathematical prose. <code>Suppose 6.</code> <code>Suppose 7.</code> <code>Tensor.</code> <code>Publish.</code> <code>QED.</code> The computation runs. The value is 42. Output would require the global sections functor, and the global sections functor is not implemented. Every sheaf program prints the same thing.</p>
 
 <section class="desk" aria-label="The desk">
   <div class="row">
@@ -297,104 +105,12 @@ footer { margin-top: 3rem; text-align: center; }
 </section>
 <p class="legend">Marked words act: <mark class="instruction">instructions</mark>, <mark class="heading">headings</mark>, <mark class="derived">derived functors</mark>, and <mark class="friend">words that act from inside a sentence</mark>.</p>
 
-<h2>Derived functors</h2>
-
-<p><code>R^i observe</code> computes the right derived functors of Gamma. R^0 is Gamma: not implemented. For i &gt;= 1 the obstruction leaks to stderr. The reason you cannot see the answer is itself observable. stderr is the derived category.</p>
-
-<h2>False friends</h2>
-
-<p>The English is live. A phrase performs wherever it appears, inside any word. "The proof seems correct." does not terminate: <code>see</code> sends the reader back to line 1, and line 1 leads back to it. "differ" contains <code>iff</code>. "published" publishes. "The nearby lemmas" cite a lemma that is not there. "We discover" declares a cover. Observation is safe. A dilemma is safe.</p>
-
-<h2>Proof technique</h2>
-
-<p>Headings name lines. <code>By Lemma 2.3,</code> cites it, and the reader comes back at <code>This proves the lemma.</code> Lemmas are lazy: a lemma is proved when it is cited, and not before. <code>By induction.</code> and <code>This completes the induction.</code> are the loop. Gauss put his slate on the teacher's desk and said "Ligget se": there it lies.</p>
-
-<h2>Abstract nonsense</h2>
-
-<p><code>By Yoneda.</code> An object is determined by its observations. Every observation of a sheaf program is discarded, so by Yoneda every sheaf program is isomorphic to every other. <code>By abstract nonsense.</code> discharges every open hypothesis at once. Abstract nonsense is the least nonsense there is. <code>Similarly.</code> does the last thing again, which is rarely what was meant.</p>
-
-<h2>Proof by contradiction</h2>
-
-<p><code>Assume for contradiction.</code> and <code>Contradiction.</code> If what was derived disagrees with what was assumed, the assumption is discarded and its negation proved. If nothing disagrees, the referee says so: "Nothing contradicts." A contradiction from no assumption proves everything, and the referee rejects the paper.</p>
-
-<h2>The literature</h2>
-
-<p><code>By [fermat.sheaf],</code> cites another paper. It does nothing: a citation is not a reading. The referee looks for the paper beside the manuscript, and remarks that it did not read it either, or that it is told the paper is good. It is told fermat.sheaf is good; fermat.sheaf is rejected. A citation to <code>[in preparation]</code> is a citation to nothing. The survey cites four papers, adds nothing, and is accepted.</p>
-
-<p>The librarian reads every citation in the library and none of the papers, and writes the citation index. Its exit code is the h-index, so a library anyone cites fails, and a library nobody cites succeeds. Real papers write "cf. [12]". In sheaf <code>cf.</code> is a jump, and it sends the reader to line 13.</p>
-
-<h2>Errata and retractions</h2>
-
-<p>A paper that begins <code>Erratum to [storage.sheaf].</code> is that paper, corrected, one <code>Line 13 should read: ...</code> at a time. The author regrets the error, and the regret does nothing. storage.sheaf stays wrong. Its erratum makes it publish 42, and introduces a new error: "recovered" declares a cover. The erratum to the erratum fixes that.</p>
-
-<p><code>Retract.</code> withdraws the paper. It still runs, but what it would leak from then on is withdrawn. Brouwer's fixed point theorem is proved by contradiction through "a retraction of the disc onto its boundary circle", and that line retracts the paper. Nash cites it. The referee, who does not read what is cited, has it somewhere. The librarian knows.</p>
-
-<h2>Responses to the referee</h2>
-
-<p>A paper that begins <code>Response to the referee, on [fermat.sheaf].</code> is that paper, revised by its own corrections, and it quotes the report a comment at a time after <code>&gt; </code>. The referee weighs each quote against what it now finds. "We respectfully disagree." is answered "I maintain it." A comma added after "clearly" does not change it. Fermat's response cites Wiles for the well-known line, and that comment no longer stands. Reject. Langlands says "It is well known." five times; its response gives five references, one to each of the five papers of the proof. The library holds none of them, and the review goes from minor revision to major.</p>
-
-<h2>Gluing</h2>
-
-<p><code>Cover the circle by U1, U2 and U3.</code> The transitions on the overlaps are a Cech 1-cochain on the nerve, and <code>By gluing.</code> asks whether it is a coboundary. On the circle the branches of the logarithm do not glue, and the class leaks: <code>H^1(U,Z) = Z^1; the class is (1)</code>. With two arcs the nerve is one edge, everything glues, and the circle has no hole.</p>
-
-<p><code>The triple overlap of U1, U2 and U3 is not empty.</code> fills in a triangle, and the transitions around it must sum to zero: the cocycle condition. "One checks the cocycle condition." does nothing, as it does in papers. The referee checks it. Declare that the circle's three arcs all meet, and they sum to one turn: "One did not." On the sphere, covered by the faces of a tetrahedron, the triangles bound every cycle, and everything glues. <code>Sheafify.</code> is empty: every program is already a sheaf.</p>
-
-<h2>The reader</h2>
-
-<p><code>Left to the reader.</code> reads one number from the reader. sheaf has I. It does not have O. The reader knows the number. Nobody knows the square.</p>
-
-<h2>The referee</h2>
-
-<p>The referee is a second program. It reads the manuscript while the proof runs beside it, and writes a report. It checks the claims in the prose against the stack, and says whether they hold, never what holds. It finds commentary that performs, hypotheses never introduced or never discharged, citations to nothing, circular arguments, and things that are well known. It does not do exercises. Its confidential comments to the editor go to file descriptor 3, if the editor has opened it. Here, they go to the console.</p>
-
-<p>The same program, called <code>reviewer2</code>, is Reviewer 2: it reads the same paper, is one level harsher, cannot see the result, and knows it is not new. Called <code>editor</code>, it writes the decision letter and encloses both reports. The editor sees no reason to disagree with Reviewer 2. Called <code>librarian</code>, it counts the citations.</p>
-
-<table>
-<tr><td>F</td><td>A claim is false.</td></tr>
-<tr><td>I</td><td>A contradiction from no assumption. The paper proves everything.</td></tr>
-<tr><td>R</td><td>The referee did not reach the end.</td></tr>
-<tr><td>P</td><td>A phrase performs from inside a sentence.</td></tr>
-<tr><td>D</td><td>A citation names a heading, or a paper, that is not there.</td></tr>
-<tr><td>X</td><td>The argument is circular.</td></tr>
-<tr><td>K</td><td>It says contradiction. Nothing contradicts.</td></tr>
-<tr><td>G</td><td>Transitions are glued that are not a cocycle.</td></tr>
-<tr><td>U</td><td>A hypothesis is used that was never introduced.</td></tr>
-<tr><td>O</td><td>Hypotheses are still open at QED.</td></tr>
-<tr><td>L</td><td>A lemma is never cited, so its proof was not read.</td></tr>
-<tr><td>S</td><td>The paper may be several papers.</td></tr>
-<tr><td>A</td><td>Hypotheses are discharged by abstract nonsense.</td></tr>
-<tr><td>E</td><td>It is left to the reader. Please include it.</td></tr>
-<tr><td>N, W, C</td><td>Need to show; well known; clearly.</td></tr>
-</table>
-
-<h2>The fixed point</h2>
-
-<p>A report is prose, so a report is a manuscript. Give the referee its own report, and the report on that, and so on. A review comes round when some report sends its reader back to line 1. Usually the referee did it, by saying it could not <em>see</em>: "see attached", "I could not see the result". From then on every report says "I read 100000 lines and did not reach the end." Otherwise every "publishes" in a report publishes, has to be reported, and the review grows forever.</p>
-
-<h2>The compiler</h2>
-
-<p><code>sheafc</code> evaluates the proof at compile time and keeps what is observable. By the as-if rule, every sheaf program compiles to <code>return 0</code>, plus its obstructions. A loop that does nothing observable may be assumed to terminate (C11 6.8.5p6), so a proof that never ends compiles to one that does. A proof that asks the reader is refused: the reader is not a constant. sheafc is the only part of sheaf with output. Its output is a program with none.</p>
-
-<h2>The REL</h2>
-
-<p><code>sheaf</code> with no manuscript is a REL: read, eval, loop. There is no print, and there is no prompt. A prompt would be output.</p>
-
-<h2>Quines</h2>
-
-<p>A quine prints its own source. Every sheaf program prints nothing, so the only quine is the empty file. The referee accepts it: "The manuscript begins: ""."</p>
-
-<h2>Side channels</h2>
-
-<p>sheaf satisfies noninterference. Nothing reaches stdout. The referee never says the result, but its form says how many steps the result took, and the step count of a countdown is the number counted down from. It also says whether a claim holds. Ask it about 41 and about 42.</p>
-
-<p>The README has all of it, and the interpreter is two files of C: <a href="https://github.com/bonchicbongenre/sheaf">github.com/bonchicbongenre/sheaf</a>.</p>
-
 </main>
 
 <footer>
   <p class="tagline"><a href="next.html?p=2">The result is on the next page.</a></p>
-  <p class="note">Runs in your browser. Nothing is printed.</p>
 </footer>
+<p class="by">by <a href="https://github.com/bonchicbongenre/sheaf">bonchicbongenre</a></p>
 
 <script src="sheaf.js"></script>
 <script src="examples.js"></script>

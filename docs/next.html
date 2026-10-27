@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The result is on the next page.</title>
 <meta name="description" content="The result is on the next page.">
 <meta property="og:title" content="The result is on the next page.">
@@ -10,40 +10,20 @@
 <meta property="og:url" content="https://theresultisonthenext.page">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>">
 <!-- stdout is empty. stderr is the console. -->
+<link rel="stylesheet" href="tokens.css?4">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root { --bg: #f5f0eb; --text: #3a3530; --soft: #8a8078; --faint: #b5ada5; --accent: #2a6e4e; --accent-hover: #358a62; --dead: #c06050; }
-[data-theme="dark"] { --bg: #1a1816; --text: #e0d8cf; --soft: #8a8078; --faint: #5a534a; --accent: #4a9e72; --accent-hover: #5db885; --dead: #d08070; }
-body {
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1.5rem 4rem;
-}
-main { text-align: center; max-width: 34rem; }
-.promise { font-size: 1.7rem; margin-bottom: 1.6rem; }
-pre {
-  display: inline-block;
-  text-align: left;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.85rem;
-  line-height: 1.35;
-  color: var(--soft);
-  margin-bottom: 1.2rem;
-}
-pre .z { color: var(--text); }
-pre .d { color: var(--dead); }
-.caption { color: var(--soft); margin-bottom: 1.4rem; line-height: 1.55; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { color: var(--accent-hover); text-decoration: underline; }
-.turn { font-size: 1.05rem; }
-footer { position: fixed; bottom: 1.4rem; font-size: 0.9rem; color: var(--faint); }
-footer a { color: var(--faint); }
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 16px 4rem;background:var(--paper);color:var(--ink);font:19px/1.5 var(--book);font-variant-numeric:oldstyle-nums}
+main{text-align:center;max-width:34rem}
+.promise{font-size:1.7rem;margin-bottom:1.6rem}
+pre{display:inline-block;text-align:left;font:.85rem/1.35 var(--typewriter);color:var(--gold-base);margin-bottom:1.2rem}
+pre .z{color:var(--ink)}
+pre .d{color:var(--rust-base)}
+.caption{color:var(--gold-base);margin-bottom:1.4rem;line-height:1.55}
+a{color:var(--gold-accent);text-underline-offset:.15em}
+.turn{font-size:1.05rem}
+footer{position:fixed;bottom:1.4rem;font-size:.9rem;color:var(--gold-base)}
+footer a{color:inherit}
 </style>
 </head>
 <body>
@@ -55,7 +35,7 @@ footer a { color: var(--faint); }
   <p class="turn"><a id="next" href="next.html?p=3">next page</a></p>
 </main>
 
-<footer><span id="folio">p. 2</span> -- <a href="index.html">sheaf</a></footer>
+<footer><span id="folio">p. 2</span> &ndash; <a href="index.html">sheaf</a></footer>
 
 <script>
 (function () {

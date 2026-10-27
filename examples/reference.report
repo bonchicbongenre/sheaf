@@ -1,0 +1,46 @@
+EDITORIAL OFFICE -- REFEREE REPORT
+------------------------------------------------------------
+manuscript        reference.sheaf
+lines             64
+steps             53 (6 of them empty)
+hypotheses open   0
+claims            2 checked, 0 false
+citation graph    V 2, E 1, H^0 1, H^1 0, chi 1
+codes             E N W C
+result            withdrawn
+recommendation    MINOR REVISION
+------------------------------------------------------------
+
+Comments to the author
+
+The manuscript begins: "A Reference for the Language." It takes 53
+steps, observes once, publishes once and leaks one obstruction.
+
+I could not see the result. My comments concern the text.
+
+The manuscript was retracted on line 63. I have reviewed it
+anyway.
+
+1. Line 61 is left to the reader. Please include it.
+
+2. Line 55 says what needs to be shown. Please show it.
+
+3. Line 54 is well known. Please give a reference.
+
+4. Line 53 says "clearly". Please show the step.
+
+5. Line 52 invokes Yoneda. By Yoneda, this manuscript is
+   isomorphic to every manuscript that prints the same thing. That
+   is every manuscript.
+
+6. Line 19 says "similarly". It is line 18 again.
+
+7. Line 41 says one checks the cocycle condition. There is no
+   triple overlap, so it holds vacuously.
+
+8. Line 42 sheafifies. The manuscript was already a sheaf.
+
+9. Line 51 cites [fermat.sheaf]. I have not read it.
+
+Recommendation: minor revision.
+

@@ -1,16 +1,16 @@
 LIBRARY -- CITATION INDEX
 ------------------------------------------------------------
-papers            43
-citations         9
+papers            44
+citations         10
 papers cited      6
-not cited         37
+not cited         38
 not held          1
 errata            2
-retracted         1
+retracted         2
 h-index           2
 ------------------------------------------------------------
 cited  paper               cited by
-    2  fermat.sheaf        followup.sheaf, survey.sheaf
+    3  fermat.sheaf        followup.sheaf, reference.sheaf, survey.sheaf
     2  gauss.sheaf         followup.sheaf, survey.sheaf
     1  brouwer.sheaf       nash.sheaf  (retracted)
     1  collatz.sheaf       survey.sheaf
@@ -19,8 +19,8 @@ cited  paper               cited by
     1  in preparation      followup.sheaf  (not held)
 ------------------------------------------------------------
 
-I have catalogued 43 papers. They make nine citations, to seven
-papers. Of the 43 papers in the library, 37 are not cited.
+I have catalogued 44 papers. They make ten citations, to seven
+papers. Of the 44 papers in the library, 38 are not cited.
 
 [in preparation] is cited by followup.sheaf. The library does not
 hold it.
@@ -32,6 +32,8 @@ storage-erratum.sheaf corrects storage.sheaf.
 
 brouwer.sheaf has been retracted. It is still cited, by
 nash.sheaf.
+
+reference.sheaf has been retracted.
 
 The h-index of the library is 2.
 

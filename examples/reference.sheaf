@@ -1,0 +1,64 @@
+A Reference for the Language.
+
+Phrase matching is case-insensitive, leftmost-wins.
+The English is the paper. The computation is the proof.
+
+Suppose 6. Introduce a hypothesis.
+Suppose 7. Introduce a hypothesis.
+Tensor. Tensor product.
+Recall. Recall what we just established.
+Direct sum. Combine.
+Suppose 2. Introduce a hypothesis.
+Localize. Localize at a prime.
+Suppose 0. Introduce a hypothesis.
+By duality. The dual statement.
+Pushforward. Push forward to the base.
+Trivially. The trivial case.
+Pullback. Pull back from the base.
+Suppose 1. Introduce a hypothesis.
+Similarly. The last line that performed, performed again.
+Restrict. Restrict to a smaller space.
+Without loss of generality. Discard. It doesn't matter.
+
+By Lemma 1. Cite it. Go there, and come back.
+
+Lemma 1. A lemma is proved when it is cited, and not before.
+Recall. Recall what we just established.
+R^1 observe. Right derived functor. The obstruction leaks.
+This proves the lemma. Come back.
+
+Suppose 3. Introduce a hypothesis.
+By induction. Begin an induction.
+Suppose 1. Introduce a hypothesis.
+Restrict. Restrict to a smaller space.
+This completes the induction. Begin again, while the top of the stack is nonzero.
+Vacuously 37. Vacuously true. The premise is zero.
+The proof seems correct.
+
+Cover by U1 and U2. A new cover, by the opens named on the line.
+The transition on U1 and U2 is 0. The transition on two opens: an integer.
+By gluing. 1 if the transitions are a coboundary. Otherwise 0, and the class leaks.
+One checks the cocycle condition. One does not. The referee does.
+Sheafify. The sheafification of a sheaf is the sheaf.
+Observe. Pop. Discard. Gamma is not implemented.
+
+Assume for contradiction. Everything from here is derived from what is assumed.
+Suppose 1. Introduce a hypothesis.
+Contradiction. Nonzero: the assumption is discarded, and its negation, 1, is proved.
+Nontrivially 50. The value is nontrivial.
+It differs from the published version.
+
+By [fermat.sheaf]. Another paper is cited. It is not read.
+By Yoneda. An object is its observations. None are kept.
+Clearly. Obviously. Contributes nothing.
+It is well known. Everyone knows this. Nobody cites it.
+NTS. Need to show. (Does not show.)
+See 58. See proposition N.
+Suppose 41. Introduce a hypothesis.
+
+The result is 42.
+Publish. Pop. Discard. The referee is silent.
+Left to the reader. The reader gives a number. Or nothing.
+By abstract nonsense. Every open hypothesis, discharged at once.
+Retract. The paper is withdrawn.
+QED. The proof is complete.
