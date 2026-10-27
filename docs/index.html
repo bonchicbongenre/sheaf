@@ -13,7 +13,7 @@
 <meta name="twitter:title" content="sheaf">
 <meta name="twitter:description" content="The result is on the next page.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>">
-<link rel="stylesheet" href="tokens.css?4">
+<link rel="stylesheet" href="tokens.css?5">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{padding:3rem 16px 1.4rem;min-height:100svh;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);font:19px/1.6 var(--book);font-variant-numeric:oldstyle-nums}
@@ -22,7 +22,7 @@ main{flex:1}
 header{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:1.5rem}
 header nav{display:flex;align-items:baseline;gap:1.2rem;font-size:.95rem}
 h1{font-size:1.6rem;font-weight:400}
-.lede{color:var(--gold-base)}
+.lede{color:var(--gold-base);font-style:italic}
 a{color:var(--gold-accent);text-underline-offset:.15em}
 button{font:inherit;color:var(--gold-base);background:none;border:0;cursor:pointer}
 .theme-toggle:hover,button.quiet:hover{color:var(--ink)}
@@ -116,26 +116,6 @@ body{padding-top:2rem}
 <script src="examples.js"></script>
 <script>
 (function () {
-var toggle = document.getElementById('themeToggle');
-function setTheme(dark, animate) {
-  if (animate === false) {
-    document.documentElement.style.transition = 'none';
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    document.documentElement.offsetHeight;
-    document.documentElement.style.transition = '';
-  } else {
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  }
-  toggle.textContent = dark ? 'light' : 'dark';
-  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
-}
-var saved = null;
-try { saved = localStorage.getItem('theme'); } catch (e) {}
-setTheme(saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches, false);
-toggle.addEventListener('click', function () {
-  setTheme(document.documentElement.getAttribute('data-theme') !== 'dark', true);
-});
-
 var pick = document.getElementById('pick');
 var src = document.getElementById('src');
 var reader = document.getElementById('reader');
@@ -281,6 +261,31 @@ again.addEventListener('click', function () {
     said.textContent = 'Review ' + reviews + ' of the report.';
   lastReport = r.report;
 });
+})();
+</script>
+<script>
+/* The theme is the system's, unless the visitor turns it. A turn travels to the next
+   page in the address (#dark or #light) on this site's own links; nothing is kept,
+   and the default carries nothing. */
+(function () {
+  var root = document.documentElement, system = window.matchMedia('(prefers-color-scheme: dark)'),
+      toggle = document.getElementById('themeToggle'), given = location.hash.slice(1);
+  function isDark() { var t = root.getAttribute('data-theme'); return t ? t === 'dark' : system.matches; }
+  function carry() {
+    var t = root.getAttribute('data-theme'), mark = t && (t === 'dark') !== system.matches ? '#' + t : '';
+    [].forEach.call(document.querySelectorAll('a[href]'), function (a) {
+      var h = a.getAttribute('href');
+      if (!/^([a-z]+:|\/\/|#)/i.test(h)) a.setAttribute('href', h.split('#')[0] + mark);
+    });
+    if (toggle) toggle.textContent = isDark() ? 'light' : 'dark';
+  }
+  if (given === 'dark' || given === 'light') root.setAttribute('data-theme', given);
+  carry();
+  system.addEventListener('change', carry);
+  if (toggle) toggle.addEventListener('click', function () {
+    root.setAttribute('data-theme', isDark() ? 'light' : 'dark');
+    carry();
+  });
 })();
 </script>
 </body>

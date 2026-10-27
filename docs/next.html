@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://theresultisonthenext.page">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>">
 <!-- stdout is empty. stderr is the console. -->
-<link rel="stylesheet" href="tokens.css?4">
+<link rel="stylesheet" href="tokens.css?5">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 16px 4rem;background:var(--paper);color:var(--ink);font:19px/1.5 var(--book);font-variant-numeric:oldstyle-nums}
@@ -39,11 +39,6 @@ footer a{color:inherit}
 
 <script>
 (function () {
-  var saved = null;
-  try { saved = localStorage.getItem('theme'); } catch (e) {}
-  var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-
   var r = parseInt(new URLSearchParams(window.location.search).get('p'), 10);
   if (!(r >= 2)) r = 2;
 
@@ -102,6 +97,31 @@ footer a{color:inherit}
   document.title = promise;
 
   console.error('H^1(X,F) = 42');
+})();
+</script>
+<script>
+/* The theme is the system's, unless the visitor turns it. A turn travels to the next
+   page in the address (#dark or #light) on this site's own links; nothing is kept,
+   and the default carries nothing. */
+(function () {
+  var root = document.documentElement, system = window.matchMedia('(prefers-color-scheme: dark)'),
+      toggle = document.getElementById('themeToggle'), given = location.hash.slice(1);
+  function isDark() { var t = root.getAttribute('data-theme'); return t ? t === 'dark' : system.matches; }
+  function carry() {
+    var t = root.getAttribute('data-theme'), mark = t && (t === 'dark') !== system.matches ? '#' + t : '';
+    [].forEach.call(document.querySelectorAll('a[href]'), function (a) {
+      var h = a.getAttribute('href');
+      if (!/^([a-z]+:|\/\/|#)/i.test(h)) a.setAttribute('href', h.split('#')[0] + mark);
+    });
+    if (toggle) toggle.textContent = isDark() ? 'light' : 'dark';
+  }
+  if (given === 'dark' || given === 'light') root.setAttribute('data-theme', given);
+  carry();
+  system.addEventListener('change', carry);
+  if (toggle) toggle.addEventListener('click', function () {
+    root.setAttribute('data-theme', isDark() ? 'light' : 'dark');
+    carry();
+  });
 })();
 </script>
 </body>

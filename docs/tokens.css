@@ -5,6 +5,7 @@
    Wash: a glaze at its own chroma, near the paper's lightness, for fills only. */
 
 @font-face { font-family: "House Book"; src: url("house-book.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "House Book"; src: url("house-book-italic.woff2") format("woff2"); font-style: italic; font-display: swap; }
 @font-face { font-family: "House Sans"; src: url("house-sans.woff2") format("woff2"); font-display: swap; }
 @font-face { font-family: "House Typewriter"; src: url("house-typewriter.woff2") format("woff2"); font-display: swap; }
 
